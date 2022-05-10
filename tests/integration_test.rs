@@ -16,7 +16,6 @@ fn assert_output_snapshot(name: &str, cmd: &mut Command) -> Result<()> {
         std::str::from_utf8(&output.stderr)?,
     );
     let output_lines = output_string.lines().collect::<Vec<_>>();
-    println!("{}", output_lines.join("\n"));
 
     assert_yaml_snapshot!(
         name,
@@ -655,6 +654,16 @@ fn rage_command_basic() -> Result<()> {
     cmd.arg("README.md");
     cmd.arg("-vv");
     cmd.assert().failure();
+
+    let output = cmd.output()?;
+
+    let output_string = format!(
+        "STDOUT:\n{}\n\nSTDERR:\n{}",
+        std::str::from_utf8(&output.stdout)?,
+        std::str::from_utf8(&output.stderr)?,
+    );
+    println!("{}", output_string);
+
 
     // Now run rage
     let mut cmd = Command::cargo_bin("lintrunner")?;
