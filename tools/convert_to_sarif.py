@@ -42,7 +42,9 @@ def parse_single_lintrunner_result(lintrunner_result: dict) -> tuple:
             {
                 "physicalLocation": {
                     "artifactLocation": {
-                        "uri": "file://" + lintrunner_result["path"],
+                        "uri": ("file://" + lintrunner_result["path"])
+                        if lintrunner_result["path"].startswith("/")
+                        else lintrunner_result["path"],
                     },
                     "region": {
                         "startLine": lintrunner_result["line"] or 1,
