@@ -30,6 +30,14 @@ def parse_single_lintrunner_result(lintrunner_result: dict) -> tuple:
         "description":"line too long (81 > 79 characters)\nSee https://www.flake8rules.com/rules/E501.html"
     }
     """
+    if lintrunner_result["path"] is None:
+        artifact_uri = None
+    else:
+        artifact_uri = (
+            ("file://" + lintrunner_result["path"])
+            if lintrunner_result["path"].startswith("/")
+            else lintrunner_result["path"]
+        )
     result = {
         "ruleId": format_rule_name(lintrunner_result),
         "level": severity_to_github_level(lintrunner_result["severity"]),
@@ -42,9 +50,7 @@ def parse_single_lintrunner_result(lintrunner_result: dict) -> tuple:
             {
                 "physicalLocation": {
                     "artifactLocation": {
-                        "uri": ("file://" + lintrunner_result["path"])
-                        if lintrunner_result["path"].startswith("/")
-                        else lintrunner_result["path"],
+                        "uri": artifact_uri,
                     },
                     "region": {
                         "startLine": lintrunner_result["line"] or 1,
