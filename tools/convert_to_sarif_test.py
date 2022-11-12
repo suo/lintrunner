@@ -53,7 +53,7 @@ class TestConvertToSarif(unittest.TestCase):
                                     "fullDescription": {
                                         "text": "FLAKE8/test-code\ntest description"
                                     },
-                                    "defaultConfiguration": {"level": "recommendation"},
+                                    "defaultConfiguration": {"level": "note"},
                                 },
                                 {
                                     "id": "FLAKE8/test-code-2",
@@ -77,7 +77,7 @@ class TestConvertToSarif(unittest.TestCase):
                             "locations": [
                                 {
                                     "physicalLocation": {
-                                        "artifactLocation": {"uri": "file://test.py"},
+                                        "artifactLocation": {"uri": "test.py"},
                                         "region": {"startLine": 1, "startColumn": 2},
                                     }
                                 }
@@ -90,7 +90,7 @@ class TestConvertToSarif(unittest.TestCase):
                             "locations": [
                                 {
                                     "physicalLocation": {
-                                        "artifactLocation": {"uri": "file://test.py"},
+                                        "artifactLocation": {"uri": "test.py"},
                                         "region": {"startLine": 1, "startColumn": 2},
                                     }
                                 }
@@ -98,12 +98,12 @@ class TestConvertToSarif(unittest.TestCase):
                         },
                         {
                             "ruleId": "FLAKE8/test-code",
-                            "level": "recommendation",
+                            "level": "note",
                             "message": {"text": "FLAKE8/test-code\ntest description"},
                             "locations": [
                                 {
                                     "physicalLocation": {
-                                        "artifactLocation": {"uri": "file://test2.py"},
+                                        "artifactLocation": {"uri": "test2.py"},
                                         "region": {"startLine": 3, "startColumn": 4},
                                     }
                                 }
@@ -113,7 +113,68 @@ class TestConvertToSarif(unittest.TestCase):
                 }
             ],
         }
+        self.maxDiff = None
         self.assertEqual(actual, expected)
+
+    def test_it_handles_relative_paths(self):
+        lintrunner_results = [
+            {
+                "path": "test.py",
+                "line": 1,
+                "char": 2,
+                "code": "FLAKE8",
+                "severity": "error",
+                "description": "test description",
+                "name": "test-code",
+            },
+        ]
+        actual = convert_to_sarif.produce_sarif(lintrunner_results)
+        expected_results = [
+            {
+                "ruleId": "FLAKE8/test-code",
+                "level": "error",
+                "message": {"text": "FLAKE8/test-code\ntest description"},
+                "locations": [
+                    {
+                        "physicalLocation": {
+                            "artifactLocation": {"uri": "test.py"},
+                            "region": {"startLine": 1, "startColumn": 2},
+                        }
+                    }
+                ],
+            },
+        ]
+        self.assertEqual(actual["runs"][0]["results"], expected_results)
+
+    def test_it_handles_absolute_paths(self):
+        lintrunner_results = [
+            {
+                "path": "/path/to/test.py",
+                "line": 1,
+                "char": 2,
+                "code": "FLAKE8",
+                "severity": "error",
+                "description": "test description",
+                "name": "test-code",
+            },
+        ]
+        actual = convert_to_sarif.produce_sarif(lintrunner_results)
+        expected_results = [
+            {
+                "ruleId": "FLAKE8/test-code",
+                "level": "error",
+                "message": {"text": "FLAKE8/test-code\ntest description"},
+                "locations": [
+                    {
+                        "physicalLocation": {
+                            "artifactLocation": {"uri": "file:///path/to/test.py"},
+                            "region": {"startLine": 1, "startColumn": 2},
+                        }
+                    }
+                ],
+            },
+        ]
+        self.assertEqual(actual["runs"][0]["results"], expected_results)
 
 
 if __name__ == "__main__":
