@@ -86,7 +86,7 @@ pub struct LintConfig {
     /// # Examples
     /// - Calling a Python script:
     /// ```toml
-    /// command = ['python3', 'my_linter.py', -- '@{{PATHSFILE}}']
+    /// command = ['python3', 'my_linter.py', '--', '@{{PATHSFILE}}']
     /// ```
     pub command: Vec<String>,
 
