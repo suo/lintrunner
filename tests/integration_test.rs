@@ -263,6 +263,7 @@ fn linter_providing_nonexistent_path_degrades_gracefully() -> Result<()> {
 }
 
 #[test]
+#[cfg_attr(target_os = "windows", ignore)]  // Error string is different
 fn linter_hard_failure_is_caught() -> Result<()> {
     let data_path = tempfile::tempdir()?;
     let config = temp_config(
@@ -419,6 +420,7 @@ fn skip_nonexistent_linter() -> Result<()> {
 }
 
 #[test]
+#[cfg_attr(target_os = "windows", ignore)]  // Usage string is different
 fn invalid_paths_cmd_and_from() -> Result<()> {
     let config = temp_config(
         "\
@@ -439,6 +441,7 @@ fn invalid_paths_cmd_and_from() -> Result<()> {
 }
 
 #[test]
+#[cfg_attr(target_os = "windows", ignore)]  // Usage string is different
 fn invalid_paths_cmd_and_specified_paths() -> Result<()> {
     let config = temp_config(
         "\
@@ -459,6 +462,7 @@ fn invalid_paths_cmd_and_specified_paths() -> Result<()> {
 }
 
 #[test]
+#[cfg_attr(target_os = "windows", ignore)]
 fn init_suppresses_warning() -> Result<()> {
     let data_path = tempfile::tempdir()?;
     let config = temp_config(
