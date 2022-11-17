@@ -125,6 +125,7 @@ fn empty_command_fails() -> Result<()> {
 }
 
 #[test]
+#[cfg_attr(target_os = "windows", ignore)] // STDERR string is different
 fn simple_linter() -> Result<()> {
     let data_path = tempfile::tempdir()?;
     let lint_message = LintMessage {
@@ -267,7 +268,7 @@ fn linter_providing_nonexistent_path_degrades_gracefully() -> Result<()> {
 }
 
 #[test]
-#[cfg_attr(target_os = "windows", ignore)] // Error string is different
+#[cfg_attr(target_os = "windows", ignore)] // STDERR string is different
 fn linter_hard_failure_is_caught() -> Result<()> {
     let data_path = tempfile::tempdir()?;
     let config = temp_config(
