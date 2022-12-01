@@ -18,6 +18,7 @@ pub fn get_head() -> Result<String> {
 pub fn get_paths_from_cmd(paths_cmd: &str) -> Result<Vec<AbsPath>> {
     debug!("Running paths_cmd: {}", paths_cmd);
     let argv = shell_words::split(paths_cmd).context("failed to split paths_cmd")?;
+    debug!("Parsed paths_cmd: {:?}", argv);
 
     let output = Command::new(&argv[0])
         .args(&argv[1..])
