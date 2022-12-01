@@ -17,11 +17,19 @@ pub fn get_head() -> Result<String> {
 
 pub fn get_paths_from_cmd(paths_cmd: &str) -> Result<Vec<AbsPath>> {
     debug!("Running paths_cmd: {}", paths_cmd);
-    let output = Command::new("sh")
-        .arg("-c")
-        .arg(paths_cmd)
-        .output()
-        .context("failed to run provided paths_cmd")?;
+    let output = if cfg!(target_os = "windows") {
+        Command::new("cmd")
+            .arg("/C")
+            .arg(paths_cmd)
+            .output()
+            .context("failed to run provided paths_cmd on Windows")?
+    } else {
+        Command::new("sh")
+            .arg("-c")
+            .arg(paths_cmd)
+            .output()
+            .context("failed to run provided paths_cmd")?
+    };
 
     let files = std::str::from_utf8(&output.stdout).context("failed to parse paths_cmd output")?;
     let files = files
