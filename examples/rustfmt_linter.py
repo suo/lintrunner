@@ -8,7 +8,7 @@ import subprocess
 import sys
 import time
 from enum import Enum
-from typing import Any, List, NamedTuple, Optional, Pattern
+from typing import Any, BinaryIO, List, NamedTuple, Optional, Pattern
 
 
 IS_WINDOWS: bool = os.name == "nt"
@@ -56,20 +56,40 @@ def strip_path_from_error(error: str) -> str:
 
 
 def run_command(
-    args: List[str],
-) -> "subprocess.CompletedProcess[bytes]":
+    args: list[str],
+    *,
+    retries: int = 0,
+    timeout: int | None = None,
+    stdin: BinaryIO | None = None,
+    check: bool = False,
+) -> subprocess.CompletedProcess[bytes]:
+    remaining_retries = retries
     logging.debug("$ %s", " ".join(args))
     start_time = time.monotonic()
-    try:
-        return subprocess.run(
-            args,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=True,
-        )
-    finally:
-        end_time = time.monotonic()
-        logging.debug("took %dms", (end_time - start_time) * 1000)
+    while True:
+        try:
+            return subprocess.run(
+                args,
+                capture_output=True,
+                shell=False,
+                stdin=stdin,
+                timeout=timeout,
+                check=check,
+            )
+        except subprocess.TimeoutExpired as err:
+            if remaining_retries == 0:
+                raise err
+            remaining_retries -= 1
+            logging.warning(
+                "(%s/%s) Retrying because command failed with: %r",
+                retries - remaining_retries,
+                retries,
+                err,
+            )
+            time.sleep(1)
+        finally:
+            end_time = time.monotonic()
+            logging.debug("took %dms", (end_time - start_time) * 1000)
 
 
 def check_file(
@@ -80,16 +100,18 @@ def check_file(
     try:
         with open(filename, "rb") as f:
             original = f.read()
-        proc = run_command(
-            [
-                binary,
-                "--config-path",
-                config_path,
-                "--emit=stdout",
-                "--quiet",
-                filename,
-            ]
-        )
+        with open(filename, "rb") as f:
+            proc = run_command(
+                [
+                    binary,
+                    "--config-path",
+                    config_path,
+                    "--emit=stdout",
+                    "--quiet",
+                ],
+                stdin=f,
+                check=True,
+            )
     except (OSError, subprocess.CalledProcessError) as err:
         # https://github.com/rust-lang/rustfmt#running
         # TODO: Fix the syntax error regexp to handle multiple issues and
