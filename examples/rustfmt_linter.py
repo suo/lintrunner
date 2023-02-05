@@ -58,7 +58,6 @@ def strip_path_from_error(error: str) -> str:
 def run_command(
     args: list[str],
     *,
-    timeout: int | None = None,
     stdin: BinaryIO | None = None,
     check: bool = False,
 ) -> subprocess.CompletedProcess[bytes]:
@@ -70,7 +69,6 @@ def run_command(
             capture_output=True,
             shell=False,
             stdin=stdin,
-            timeout=timeout,
             check=check,
         )
     finally:
