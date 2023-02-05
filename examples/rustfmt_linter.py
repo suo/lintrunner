@@ -58,38 +58,24 @@ def strip_path_from_error(error: str) -> str:
 def run_command(
     args: list[str],
     *,
-    retries: int = 0,
     timeout: int | None = None,
     stdin: BinaryIO | None = None,
     check: bool = False,
 ) -> subprocess.CompletedProcess[bytes]:
-    remaining_retries = retries
     logging.debug("$ %s", " ".join(args))
     start_time = time.monotonic()
-    while True:
-        try:
-            return subprocess.run(
-                args,
-                capture_output=True,
-                shell=False,
-                stdin=stdin,
-                timeout=timeout,
-                check=check,
-            )
-        except subprocess.TimeoutExpired as err:
-            if remaining_retries == 0:
-                raise err
-            remaining_retries -= 1
-            logging.warning(
-                "(%s/%s) Retrying because command failed with: %r",
-                retries - remaining_retries,
-                retries,
-                err,
-            )
-            time.sleep(1)
-        finally:
-            end_time = time.monotonic()
-            logging.debug("took %dms", (end_time - start_time) * 1000)
+    try:
+        return subprocess.run(
+            args,
+            capture_output=True,
+            shell=False,
+            stdin=stdin,
+            timeout=timeout,
+            check=check,
+        )
+    finally:
+        end_time = time.monotonic()
+        logging.debug("took %dms", (end_time - start_time) * 1000)
 
 
 def check_file(
