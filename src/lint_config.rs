@@ -7,9 +7,12 @@ use log::debug;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
-pub struct LintRunnerConfig {
+pub struct LintRunnerConfig{
     #[serde(rename = "linter")]
     pub linters: Vec<LintConfig>,
+
+    #[serde(default)]
+    pub merge_base_with: String,
 }
 
 fn is_false(b: &bool) -> bool {
