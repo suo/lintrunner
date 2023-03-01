@@ -7,7 +7,7 @@ use log::debug;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
-pub struct LintRunnerConfig{
+pub struct LintRunnerConfig {
     #[serde(rename = "linter")]
     pub linters: Vec<LintConfig>,
 
