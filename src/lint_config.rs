@@ -11,8 +11,8 @@ pub struct LintRunnerConfig{
     #[serde(rename = "linter")]
     pub linters: Vec<LintConfig>,
 
-    #[serde(default)]
-    pub merge_base_with: String,
+    #[serde()]
+    pub merge_base_with: Option<String>,
 }
 
 fn is_false(b: &bool) -> bool {
