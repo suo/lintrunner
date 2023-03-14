@@ -8,133 +8,141 @@ use anyhow::{ensure, Context, Result};
 use log::debug;
 use regex::Regex;
 
-// Retrieve the git root based on the current working directory.
-pub fn get_git_root() -> Result<AbsPath> {
-    let output = Command::new("git")
-        .arg("rev-parse")
-        .arg("--show-toplevel")
-        .output()?;
-    ensure!(output.status.success(), "Failed to determine git root");
-    let root = std::str::from_utf8(&output.stdout)?.trim();
-    AbsPath::try_from(root)
+pub struct Repo {
+    root: AbsPath,
 }
 
-pub fn get_head() -> Result<String> {
-    let output = Command::new("git").arg("rev-parse").arg("HEAD").output()?;
-    ensure_output("git rev-parse", &output)?;
-    let head = std::str::from_utf8(&output.stdout)?.trim();
-    Ok(head.to_string())
-}
-
-pub fn get_merge_base_with(git_root: &AbsPath, merge_base_with: &str) -> Result<String> {
-    let output = Command::new("git")
-        .arg("merge-base")
-        .arg("HEAD")
-        .arg(merge_base_with)
-        .current_dir(git_root)
-        .output()?;
-
-    ensure!(
-        output.status.success(),
-        format!("Failed to get merge-base between HEAD and {merge_base_with}")
-    );
-    let merge_base = std::str::from_utf8(&output.stdout)?.trim();
-    Ok(merge_base.to_string())
-}
-
-pub fn get_changed_files(git_root: &AbsPath, relative_to: Option<&str>) -> Result<Vec<AbsPath>> {
-    // Output of --name-status looks like:
-    // D    src/lib.rs
-    // M    foo/bar.baz
-    let re = Regex::new(r"^[A-Z]\s+")?;
-
-    // Retrieve changed files in current commit.
-    let mut args = vec![
-        "diff-tree",
-        "--ignore-submodules",
-        "--no-commit-id",
-        "--name-status",
-        "-r",
-    ];
-    if let Some(relative_to) = relative_to {
-        args.push(relative_to);
-    }
-    args.push("HEAD");
-
-    let output = Command::new("git")
-        .args(&args)
-        .current_dir(git_root)
-        .output()?;
-    ensure_output("git diff-tree", &output)?;
-
-    let commit_files_str = std::str::from_utf8(&output.stdout)?;
-
-    let commit_files: HashSet<String> = commit_files_str
-        .split('\n')
-        .map(|x| x.to_string())
-        // Filter out deleted files.
-        .filter(|line| !line.starts_with('D'))
-        // Strip the status prefix.
-        .map(|line| re.replace(&line, "").to_string())
-        .filter(|line| !line.is_empty())
-        .collect();
-
-    log_files("Linting commit diff files: ", &commit_files);
-
-    // Retrieve changed files in the working tree
-    let output = Command::new("git")
-        .arg("diff-index")
-        .arg("--ignore-submodules")
-        .arg("--no-commit-id")
-        .arg("--name-status")
-        .arg("-r")
-        .arg("HEAD")
-        .current_dir(git_root)
-        .output()?;
-    ensure_output("git diff-index", &output)?;
-
-    let working_tree_files_str = std::str::from_utf8(&output.stdout)?;
-    let working_tree_files: HashSet<String> = working_tree_files_str
-        .lines()
-        .filter(|line| !line.is_empty())
-        // Filter out deleted files.
-        .filter(|line| !line.starts_with('D'))
-        // Strip the status prefix.
-        .map(|line| re.replace(line, "").to_string())
-        .collect();
-
-    log_files("Linting working tree diff files: ", &working_tree_files);
-
-    let deleted_working_tree_files: HashSet<String> = working_tree_files_str
-        .lines()
-        .filter(|line| !line.is_empty())
-        // Filter IN deleted files.
-        .filter(|line| line.starts_with('D'))
-        // Strip the status prefix.
-        .map(|line| re.replace(line, "").to_string())
-        .collect();
-
-    log_files(
-        "These files were deleted in the working tree and won't be checked: ",
-        &working_tree_files,
-    );
-
-    let all_files = working_tree_files
-        .union(&commit_files)
-        .map(|s| s.to_string())
-        .collect::<HashSet<_>>();
-
-    all_files
-        .difference(&deleted_working_tree_files)
-        // Git reports files relative to the root of git root directory, so retrieve
-        // that and prepend it to the file paths.
-        .map(|f| format!("{}", git_root.join(f).display()))
-        .map(|f| {
-            AbsPath::try_from(&f).with_context(|| {
-                format!("Failed to find file while gathering files to lint: {}", f)
-            })
+impl Repo {
+    pub fn new() -> Result<Repo> {
+        // Retrieve the git root based on the current working directory.
+        let output = Command::new("git")
+            .arg("rev-parse")
+            .arg("--show-toplevel")
+            .output()?;
+        ensure!(output.status.success(), "Failed to determine git root");
+        let root = std::str::from_utf8(&output.stdout)?.trim();
+        Ok(Repo {
+            root: AbsPath::try_from(root)?,
         })
-        .collect::<Result<_>>()
+    }
+
+    pub fn get_head(&self) -> Result<String> {
+        let output = Command::new("git").arg("rev-parse").arg("HEAD").output()?;
+        ensure_output("git rev-parse", &output)?;
+        let head = std::str::from_utf8(&output.stdout)?.trim();
+        Ok(head.to_string())
+    }
+
+    pub fn get_merge_base_with(&self, merge_base_with: &str) -> Result<String> {
+        let output = Command::new("git")
+            .arg("merge-base")
+            .arg("HEAD")
+            .arg(merge_base_with)
+            .current_dir(&self.root)
+            .output()?;
+
+        ensure!(
+            output.status.success(),
+            format!("Failed to get merge-base between HEAD and {merge_base_with}")
+        );
+        let merge_base = std::str::from_utf8(&output.stdout)?.trim();
+        Ok(merge_base.to_string())
+    }
+
+    pub fn get_changed_files(&self, relative_to: Option<&str>) -> Result<Vec<AbsPath>> {
+        // Output of --name-status looks like:
+        // D    src/lib.rs
+        // M    foo/bar.baz
+        let re = Regex::new(r"^[A-Z]\s+")?;
+
+        // Retrieve changed files in current commit.
+        let mut args = vec![
+            "diff-tree",
+            "--ignore-submodules",
+            "--no-commit-id",
+            "--name-status",
+            "-r",
+        ];
+        if let Some(relative_to) = relative_to {
+            args.push(relative_to);
+        }
+        args.push("HEAD");
+
+        let output = Command::new("git")
+            .args(&args)
+            .current_dir(&self.root)
+            .output()?;
+        ensure_output("git diff-tree", &output)?;
+
+        let commit_files_str = std::str::from_utf8(&output.stdout)?;
+
+        let commit_files: HashSet<String> = commit_files_str
+            .split('\n')
+            .map(|x| x.to_string())
+            // Filter out deleted files.
+            .filter(|line| !line.starts_with('D'))
+            // Strip the status prefix.
+            .map(|line| re.replace(&line, "").to_string())
+            .filter(|line| !line.is_empty())
+            .collect();
+
+        log_files("Linting commit diff files: ", &commit_files);
+
+        // Retrieve changed files in the working tree
+        let output = Command::new("git")
+            .arg("diff-index")
+            .arg("--ignore-submodules")
+            .arg("--no-commit-id")
+            .arg("--name-status")
+            .arg("-r")
+            .arg("HEAD")
+            .current_dir(&self.root)
+            .output()?;
+        ensure_output("git diff-index", &output)?;
+
+        let working_tree_files_str = std::str::from_utf8(&output.stdout)?;
+        let working_tree_files: HashSet<String> = working_tree_files_str
+            .lines()
+            .filter(|line| !line.is_empty())
+            // Filter out deleted files.
+            .filter(|line| !line.starts_with('D'))
+            // Strip the status prefix.
+            .map(|line| re.replace(line, "").to_string())
+            .collect();
+
+        log_files("Linting working tree diff files: ", &working_tree_files);
+
+        let deleted_working_tree_files: HashSet<String> = working_tree_files_str
+            .lines()
+            .filter(|line| !line.is_empty())
+            // Filter IN deleted files.
+            .filter(|line| line.starts_with('D'))
+            // Strip the status prefix.
+            .map(|line| re.replace(line, "").to_string())
+            .collect();
+
+        log_files(
+            "These files were deleted in the working tree and won't be checked: ",
+            &working_tree_files,
+        );
+
+        let all_files = working_tree_files
+            .union(&commit_files)
+            .map(|s| s.to_string())
+            .collect::<HashSet<_>>();
+
+        all_files
+            .difference(&deleted_working_tree_files)
+            // Git reports files relative to the root of git root directory, so retrieve
+            // that and prepend it to the file paths.
+            .map(|f| format!("{}", self.root.join(f).display()))
+            .map(|f| {
+                AbsPath::try_from(&f).with_context(|| {
+                    format!("Failed to find file while gathering files to lint: {}", f)
+                })
+            })
+            .collect::<Result<_>>()
+    }
 }
 
 pub fn get_paths_from_cmd(paths_cmd: &str) -> Result<Vec<AbsPath>> {
@@ -167,7 +175,7 @@ pub fn get_paths_from_cmd(paths_cmd: &str) -> Result<Vec<AbsPath>> {
 
 #[cfg(test)]
 mod tests {
-    use std::{convert::TryFrom, fs::OpenOptions, io::Write};
+    use std::{fs::OpenOptions, io::Write};
 
     use super::*;
     use tempfile::TempDir;
@@ -234,8 +242,9 @@ mod tests {
         }
 
         fn changed_files(&self, relative_to: Option<&str>) -> Result<Vec<String>> {
-            let git_root = AbsPath::try_from(self.root.path())?;
-            let files = get_changed_files(&git_root, relative_to)?;
+            std::env::set_current_dir(self.root.path())?;
+            let repo = Repo::new()?;
+            let files = repo.get_changed_files(relative_to)?;
             let files = files
                 .into_iter()
                 .map(|abs_path| abs_path.file_name().unwrap().to_string_lossy().to_string())
@@ -244,8 +253,9 @@ mod tests {
         }
 
         fn merge_base_with(&self, merge_base_with: &str) -> Result<String> {
-            let git_root = AbsPath::try_from(self.root.path())?;
-            get_merge_base_with(&git_root, merge_base_with)
+            std::env::set_current_dir(self.root.path())?;
+            let repo = Repo::new()?;
+            repo.get_merge_base_with(merge_base_with)
         }
     }
 
