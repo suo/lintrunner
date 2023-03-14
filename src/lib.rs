@@ -25,6 +25,9 @@ pub mod persistent_data;
 pub mod rage;
 pub mod render;
 
+#[cfg(test)]
+pub mod testing;
+
 use git::get_paths_from_cmd;
 use lint_message::LintMessage;
 use render::PrintedLintErrors;
