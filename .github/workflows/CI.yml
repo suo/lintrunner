@@ -33,16 +33,16 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           brew install sapling
-      - name: Install sapling on ubuntu
-        if : matrix.os == 'ubuntu-latest'
-        run: |
-          curl -L -o sapling_0.2.20230523-092610+f12b7eee_amd64.Ubuntu22.04.deb https://github.com/facebook/sapling/releases/download/0.2.20230523-092610%2Bf12b7eee/sapling_0.2.20230523-092610%2Bf12b7eee_amd64.Ubuntu22.04.deb
-      - name: Install sapling on Windows
-        if : matrix.os == 'windows-latest'
-        run: |
-          curl -L -o sapling.zip "https://github.com/facebook/sapling/releases/download/0.2.20230523-092610%2Bf12b7eee/sapling_windows_0.2.20230523-092610+f12b7eee_amd64.zip" 7z x sapling.zip
-          Expand-Archive sapling.zip 'C:\Program Files'
-          setx PATH "$env:PATH;C:\Program Files\Sapling" -m
+      # - name: Install sapling on ubuntu
+      #   if : matrix.os == 'ubuntu-latest'
+      #   run: |
+      #     curl -L -o sapling_0.2.20230523-092610+f12b7eee_amd64.Ubuntu22.04.deb https://github.com/facebook/sapling/releases/download/0.2.20230523-092610%2Bf12b7eee/sapling_0.2.20230523-092610%2Bf12b7eee_amd64.Ubuntu22.04.deb
+      # - name: Install sapling on Windows
+      #   if : matrix.os == 'windows-latest'
+      #   run: |
+      #     curl -L -o sapling.zip "https://github.com/facebook/sapling/releases/download/0.2.20230523-092610%2Bf12b7eee/sapling_windows_0.2.20230523-092610+f12b7eee_amd64.zip" 7z x sapling.zip
+      #     Expand-Archive sapling.zip 'C:\Program Files'
+      #     setx PATH "$env:PATH;C:\Program Files\Sapling" -m
       - name: Run cargo test
         run: RUST_BACKTRACE=1 cargo test
         env:
