@@ -75,6 +75,24 @@ you can run:
 lintrunner -m master
 ```
 
+### `--only-lint`
+The --only-lint option accepts a comma-separated list of glob patterns. These patterns specify the set of files that should be subject to linting. The patterns are interpreted relative to the location of the configuration file.
+
+By default, all files (**) are considered for linting.
+
+An example of only linting markdown files in `foo` and `bar` is
+```
+lintrunner --only-lint "foo/*.md, bar/*.md"
+```
+
+### `--exclude-from-linting`
+The --exclude-from-linting option accepts a comma-separated list of glob patterns. Any file matching these patterns will be excluded from the linting process. Again, these patterns are relative to the configuration file's location. If a file matches patterns for both `--only-lint` and `--exclude-from-linting` then the file will not be linted.
+
+For example, if you want to exclude all Markdown (*.md) and Rust (*.rs) files from linting, you would use:
+```
+lintrunner --exclude-from-linting "**/*.md, **/*.rs"
+```
+
 ## Linter configuration
 `lintrunner` knows which linters to run and how by looking at a configuration
 file, conventionally named `.lintrunner.toml`.
