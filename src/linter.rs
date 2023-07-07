@@ -20,10 +20,11 @@ pub struct Linter {
     pub config_path: AbsPath,
 }
 
-fn matches_relative_path(base: &Path, from: &Path, pattern: &Pattern) -> bool {
+pub fn matches_relative_path(base: &Path, from: &Path, pattern: &Pattern) -> bool {
     // Unwrap ok because we already checked that both paths are absolute.
     let relative_path = path_relative_from(from, base).unwrap();
-    pattern.matches_with(
+    // print!("relative_path: {:#?}", relative_path);
+    let test = pattern.matches_with(
         relative_path.to_str().unwrap(),
         MatchOptions {
             case_sensitive: true,
@@ -33,7 +34,8 @@ fn matches_relative_path(base: &Path, from: &Path, pattern: &Pattern) -> bool {
             require_literal_separator: true,
             require_literal_leading_dot: false,
         },
-    )
+    );
+    test
 }
 
 impl Linter {

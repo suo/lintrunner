@@ -14,6 +14,8 @@ use std::fs::OpenOptions;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+use glob::Pattern;
+
 pub mod git;
 pub mod init;
 pub mod lint_config;
@@ -161,6 +163,8 @@ pub fn do_lint(
     enable_spinners: bool,
     revision_opt: RevisionOpt,
     tee_json: Option<String>,
+    included_patterns: Vec<Pattern>,
+    excluded_patterns: Vec<Pattern>,
 ) -> Result<i32> {
     debug!(
         "Running linters: {:?}",
@@ -181,15 +185,36 @@ pub fn do_lint(
         PathsOpt::PathsCmd(paths_cmd) => get_paths_from_cmd(&paths_cmd)?,
         PathsOpt::Paths(paths) => get_paths_from_input(paths)?,
         PathsOpt::PathsFile(file) => get_paths_from_file(file)?,
+
         PathsOpt::AllFiles => get_paths_from_cmd("git grep -Il .")?,
     };
 
     // Sort and unique the files so we pass a consistent ordering to linters
     files.sort();
     files.dedup();
+    if linters.len() > 0 {
+        let config_path = linters[0].config_path.clone();
+        let config_dir = config_path.parent().unwrap();
+        files = files
+            .into_iter()
+            .filter(|path| {
+                included_patterns
+                    .iter()
+                    .any(|pattern| linter::matches_relative_path(&config_dir, &path, pattern))
+            })
+            .collect();
+        files = files
+            .into_iter()
+            .filter(|path| {
+                !excluded_patterns
+                    .iter()
+                    .any(|pattern| linter::matches_relative_path(&config_dir, &path, pattern))
+            })
+            .collect();
+    }
 
     let files = Arc::new(files);
-
+    // print!("Linting files: {:#?}\n\n", &files);
     log_utils::log_files("Linting files: ", &files);
 
     let mut thread_handles = Vec::new();
