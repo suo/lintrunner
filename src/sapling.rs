@@ -27,6 +27,10 @@ impl version_control::System for Repo {
     }
 
     fn get_merge_base_with(&self, merge_base_with: &str) -> anyhow::Result<String> {
+        println!(
+            "Getting most recent common ancestor between. and {}",
+            merge_base_with
+        );
         let output = std::process::Command::new("sl")
             .arg("log")
             .arg(format!("--rev=ancestor(., {})", merge_base_with))
