@@ -140,7 +140,6 @@ pub fn get_linters_from_config(
             );
         }
         all_linters.insert(lint_config.code.clone());
-
         let include_patterns = patterns_from_strs(&lint_config.include_patterns)?;
         let exclude_patterns = if let Some(exclude_patterns) = &lint_config.exclude_patterns {
             patterns_from_strs(exclude_patterns)?
