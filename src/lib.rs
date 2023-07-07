@@ -24,6 +24,8 @@ pub mod path;
 pub mod persistent_data;
 pub mod rage;
 pub mod render;
+pub mod sapling;
+pub mod version_control;
 
 #[cfg(test)]
 pub mod testing;
@@ -151,7 +153,7 @@ pub enum RenderOpt {
 }
 
 pub fn do_lint(
-    repo: &git::Repo,
+    repo: &version_control::Repo,
     linters: Vec<Linter>,
     paths_opt: PathsOpt,
     should_apply_patches: bool,
