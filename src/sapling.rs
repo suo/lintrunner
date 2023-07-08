@@ -216,6 +216,7 @@ mod tests {
         sl.write_file("test_3.txt", "commit 2")?;
 
         let files = sl.changed_files(None)?;
+        println!("files: {:?}\n", files);
         assert_eq!(files.len(), 2);
         assert!(files.contains(&"test_1.txt".to_string()));
         assert!(files.contains(&"test_3.txt".to_string()));
