@@ -161,11 +161,15 @@ mod tests {
         }
 
         fn commit(&self, message: &str) -> Result<()> {
+            let status_code = self
+                .run("commit")
+                .arg(format!("--message={}", message))
+                .status()?
+                .code();
+            println!("status code: {:?}", status_code);
+            println!("Error code is: {:#?}", self.run("commit").arg(format!("--message={}", message)).output()?.stderr);
             assert_eq!(
-                self.run("commit")
-                    .arg(format!("--message={}", message))
-                    .status()?
-                    .code(),
+                status_code,
                 Some(0)
             );
             Ok(())
