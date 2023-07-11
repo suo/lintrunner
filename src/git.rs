@@ -8,39 +8,22 @@ use anyhow::{ensure, Context, Result};
 use log::debug;
 use regex::Regex;
 
+// Retrieve the git root based on the current working directory.
+pub fn get_git_root() -> Result<AbsPath> {
+    let output = Command::new("git")
+        .arg("rev-parse")
+        .arg("--show-toplevel")
+        .output()?;
+    ensure!(output.status.success(), "Failed to determine git root");
+    let root = std::str::from_utf8(&output.stdout)?.trim();
+    AbsPath::try_from(root)
+}
+
 pub fn get_head() -> Result<String> {
     let output = Command::new("git").arg("rev-parse").arg("HEAD").output()?;
     ensure_output("git rev-parse", &output)?;
     let head = std::str::from_utf8(&output.stdout)?.trim();
     Ok(head.to_string())
-}
-
-pub fn get_paths_from_cmd(paths_cmd: &str) -> Result<Vec<AbsPath>> {
-    debug!("Running paths_cmd: {}", paths_cmd);
-    if paths_cmd.is_empty() {
-        return Err(anyhow::Error::msg(
-            "paths_cmd is empty. Please provide an executable command.",
-        ));
-    }
-    let argv = shell_words::split(paths_cmd).context("failed to split paths_cmd")?;
-    debug!("Parsed paths_cmd: {:?}", argv);
-
-    let output = Command::new(&argv[0])
-        .args(&argv[1..])
-        .output()
-        .context("failed to run provided paths_cmd")?;
-
-    let files = std::str::from_utf8(&output.stdout).context("failed to parse paths_cmd output")?;
-    let files = files
-        .lines()
-        .map(|s| s.to_string())
-        .collect::<HashSet<String>>();
-    let mut files = files.into_iter().collect::<Vec<String>>();
-    files.sort();
-    files
-        .into_iter()
-        .map(AbsPath::try_from)
-        .collect::<Result<_>>()
 }
 
 pub fn get_merge_base_with(git_root: &AbsPath, merge_base_with: &str) -> Result<String> {
@@ -154,15 +137,32 @@ pub fn get_changed_files(git_root: &AbsPath, relative_to: Option<&str>) -> Resul
         .collect::<Result<_>>()
 }
 
-// Retrieve the git root based on the current working directory.
-pub fn get_git_root() -> Result<AbsPath> {
-    let output = Command::new("git")
-        .arg("rev-parse")
-        .arg("--show-toplevel")
-        .output()?;
-    ensure!(output.status.success(), "Failed to determine git root");
-    let root = std::str::from_utf8(&output.stdout)?.trim();
-    AbsPath::try_from(root)
+pub fn get_paths_from_cmd(paths_cmd: &str) -> Result<Vec<AbsPath>> {
+    debug!("Running paths_cmd: {}", paths_cmd);
+    if paths_cmd.is_empty() {
+        return Err(anyhow::Error::msg(
+            "paths_cmd is empty. Please provide an executable command.",
+        ));
+    }
+    let argv = shell_words::split(paths_cmd).context("failed to split paths_cmd")?;
+    debug!("Parsed paths_cmd: {:?}", argv);
+
+    let output = Command::new(&argv[0])
+        .args(&argv[1..])
+        .output()
+        .context("failed to run provided paths_cmd")?;
+
+    let files = std::str::from_utf8(&output.stdout).context("failed to parse paths_cmd output")?;
+    let files = files
+        .lines()
+        .map(|s| s.to_string())
+        .collect::<HashSet<String>>();
+    let mut files = files.into_iter().collect::<Vec<String>>();
+    files.sort();
+    files
+        .into_iter()
+        .map(AbsPath::try_from)
+        .collect::<Result<_>>()
 }
 
 #[cfg(test)]
