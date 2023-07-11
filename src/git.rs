@@ -3,6 +3,7 @@ use std::{collections::HashSet, convert::TryFrom, process::Command};
 use crate::{
     log_utils::{ensure_output, log_files},
     path::AbsPath,
+    version_control,
 };
 use anyhow::{ensure, Context, Result};
 use log::debug;
@@ -12,8 +13,8 @@ pub struct Repo {
     root: AbsPath,
 }
 
-impl Repo {
-    pub fn new() -> Result<Repo> {
+impl version_control::System for Repo {
+    fn new() -> Result<Repo> {
         // Retrieve the git root based on the current working directory.
         let output = Command::new("git")
             .arg("rev-parse")
@@ -26,14 +27,14 @@ impl Repo {
         })
     }
 
-    pub fn get_head(&self) -> Result<String> {
+    fn get_head(&self) -> Result<String> {
         let output = Command::new("git").arg("rev-parse").arg("HEAD").output()?;
         ensure_output("git rev-parse", &output)?;
         let head = std::str::from_utf8(&output.stdout)?.trim();
         Ok(head.to_string())
     }
 
-    pub fn get_merge_base_with(&self, merge_base_with: &str) -> Result<String> {
+    fn get_merge_base_with(&self, merge_base_with: &str) -> Result<String> {
         let output = Command::new("git")
             .arg("merge-base")
             .arg("HEAD")
@@ -49,7 +50,7 @@ impl Repo {
         Ok(merge_base.to_string())
     }
 
-    pub fn get_changed_files(&self, relative_to: Option<&str>) -> Result<Vec<AbsPath>> {
+    fn get_changed_files(&self, relative_to: Option<&str>) -> Result<Vec<AbsPath>> {
         // Output of --name-status looks like:
         // D    src/lib.rs
         // M    foo/bar.baz
