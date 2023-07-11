@@ -186,14 +186,23 @@ mod tests {
 
     impl GitCheckout {
         fn new() -> Result<GitCheckout> {
-            let root = TempDir::new()?;
+            let git = GitCheckout {
+                root: TempDir::new()?,
+            };
 
-            Command::new("git")
-                .args(&["init"])
-                .current_dir(root.path())
-                .output()?;
+            assert_eq!(git.run("init").status()?.code(), Some(0));
 
-            Ok(GitCheckout { root })
+            // We add an initial commit because git diff-tree behaves
+            // differently when HEAD is the only commit in the
+            // repository. In actual production uses, our git
+            // diff-tree invocation will show the files modified in
+            // the HEAD commit compared to HEAD~, but if HEAD~ doesn't
+            // exist, it returns an empty list of files.
+            git.write_file("README", "or don't")?;
+            git.add("README")?;
+            git.commit("initial commit")?;
+
+            Ok(git)
         }
 
         fn rm_file(&self, name: &str) -> Result<()> {
@@ -257,6 +266,14 @@ mod tests {
             let repo = Repo::new()?;
             repo.get_merge_base_with(merge_base_with)
         }
+
+        // Returns a Command to run the subcommand in the clone.
+        fn run(&self, subcommand: &str) -> std::process::Command {
+            let mut cmd = std::process::Command::new("git");
+            cmd.arg(subcommand);
+            cmd.current_dir(self.root.path());
+            cmd
+        }
     }
 
     // Should properly detect changes in the commit (and not check other files)
@@ -301,7 +318,7 @@ mod tests {
         git.rm_file("test_1.txt")?;
 
         let files = git.changed_files(None)?;
-        assert_eq!(files.len(), 0);
+        assert_eq!(files.len(), 2);
 
         git.add(".")?;
         git.commit("removal commit")?;
@@ -399,7 +416,7 @@ mod tests {
         git.rm_file("test_1.txt")?;
 
         let files = git.changed_files(None)?;
-        assert_eq!(files.len(), 0);
+        assert_eq!(files.len(), 2);
 
         git.add(".")?;
         git.commit("removal commit")?;
