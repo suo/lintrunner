@@ -3,6 +3,7 @@ use std::{collections::HashSet, convert::TryFrom, io::Write};
 use anyhow::{Context, Result};
 use chrono::SecondsFormat;
 use clap::Parser;
+use glob::Pattern;
 
 use lintrunner::{
     do_init, do_lint,
@@ -65,6 +66,14 @@ struct Args {
     /// Comma-separated list of linters to run (opposite of --skip)
     #[clap(long, global = true)]
     take: Option<String>,
+
+    /// Comma-seperated list of patterns (globs) for paths to always lint (default: "**")
+    #[clap(long, default_value = "**", global = true)]
+    only_lint: String,
+
+    /// Comma-seperated list of patterns (globs) for paths to always avoid linting
+    #[clap(long, global = true)]
+    exclude_from_linting: Option<String>,
 
     /// With 'default' show lint issues in human-readable format, for interactive use.
     /// With 'json', show lint issues as machine-readable JSON (one per line)
@@ -181,7 +190,20 @@ fn do_main() -> Result<i32> {
             .map(|linter_name| linter_name.to_string())
             .collect::<HashSet<_>>()
     });
-
+    let excluded_patterns = args
+        .exclude_from_linting
+        .map(|patterns| {
+            patterns
+                .split(',')
+                .map(|pattern_name| Pattern::new(&pattern_name.trim()).unwrap())
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_else(|| vec![]);
+    let included_patterns = args
+        .only_lint
+        .split(',')
+        .map(|pattern_name| Pattern::new(&pattern_name.trim()).unwrap())
+        .collect::<Vec<_>>();
     // If we are formatting, the universe of linters to select from should be
     // restricted to only formatters.
     // (NOTE: we pay an allocation for `placeholder` even in cases where we are
@@ -253,6 +275,8 @@ fn do_main() -> Result<i32> {
                 enable_spinners,
                 revision_opt,
                 args.tee_json,
+                included_patterns,
+                excluded_patterns,
             )
         }
         SubCommand::Lint => {
@@ -267,6 +291,8 @@ fn do_main() -> Result<i32> {
                 enable_spinners,
                 revision_opt,
                 args.tee_json,
+                included_patterns,
+                excluded_patterns,
             )
         }
         SubCommand::Rage { invocation } => do_rage(&persistent_data_store, invocation),
