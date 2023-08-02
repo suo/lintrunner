@@ -179,7 +179,7 @@ fn simple_linter_only_under_dir() -> Result<()> {
         "--data-path={}",
         data_path.path().to_str().unwrap()
     ));
-    cmd.arg("--only-under-config-dir");
+    cmd.arg("--only-lint-under-config-dir");
     // Run on a file to ensure that the linter is run. It should skip the file
     cmd.arg("README.md");
     cmd.assert().success();
