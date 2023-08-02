@@ -19,6 +19,9 @@ pub struct LintRunnerConfig {
     /// Recommend setting this is set to your default branch, e.g. `main`
     #[serde()]
     pub merge_base_with: Option<String>,
+
+    #[serde()]
+    pub only_lint_under_config_dir: Option<bool>,
 }
 
 fn is_false(b: &bool) -> bool {

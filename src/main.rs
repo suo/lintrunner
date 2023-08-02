@@ -108,6 +108,10 @@ struct Args {
     /// Run lintrunner on all files in the repo. This could take a while!
     #[clap(long, conflicts_with_all=&["paths", "paths-cmd", "paths-from", "revision", "merge-base-with"], global = true)]
     all_files: bool,
+
+    /// If set, only lint files in the same directory as the primary config file (and subdirectories).
+    #[clap(long, global = true)]
+    only_under_config_dir: bool,
 }
 
 #[derive(Debug, Parser)]
@@ -254,6 +258,13 @@ fn do_main() -> Result<i32> {
         RevisionOpt::Head
     };
 
+    let only_lint_under_config_dir = if lint_runner_config.only_lint_under_config_dir.is_some() {
+        lint_runner_config.only_lint_under_config_dir.unwrap()
+    } else {
+        args.only_under_config_dir
+    };
+    
+
     let paths_opt = if let Some(paths_file) = args.paths_from {
         let path_file = AbsPath::try_from(&paths_file)
             .with_context(|| format!("Failed to find `--paths-from` file '{}'", paths_file))?;
@@ -284,6 +295,7 @@ fn do_main() -> Result<i32> {
                 enable_spinners,
                 revision_opt,
                 args.tee_json,
+                only_lint_under_config_dir,
             )
         }
         SubCommand::Lint => {
@@ -298,6 +310,7 @@ fn do_main() -> Result<i32> {
                 enable_spinners,
                 revision_opt,
                 args.tee_json,
+                only_lint_under_config_dir,
             )
         }
         SubCommand::Rage { invocation } => do_rage(&persistent_data_store, invocation),
