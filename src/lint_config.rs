@@ -19,6 +19,14 @@ pub struct LintRunnerConfig {
     /// Recommend setting this is set to your default branch, e.g. `main`
     #[serde()]
     pub merge_base_with: Option<String>,
+
+    /// The default value for the exclude_from_linting parameter.
+    #[serde()]
+    pub exclude_from_linting: Option<String>,
+
+    /// The default value for the only_lint parameter.
+    #[serde()]
+    pub only_lint: Option<String>,
 }
 
 fn is_false(b: &bool) -> bool {

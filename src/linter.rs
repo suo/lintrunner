@@ -20,7 +20,7 @@ pub struct Linter {
     pub primary_config_path: AbsPath,
 }
 
-fn matches_relative_path(base: &Path, from: &Path, pattern: &Pattern) -> bool {
+pub fn matches_relative_path(base: &Path, from: &Path, pattern: &Pattern) -> bool {
     // Unwrap ok because we already checked that both paths are absolute.
     let relative_path = path_relative_from(from, base).unwrap();
     pattern.matches_with(

@@ -3,6 +3,7 @@ use std::{collections::HashSet, convert::TryFrom, io::Write, path::Path};
 use anyhow::{Context, Result};
 use chrono::SecondsFormat;
 use clap::Parser;
+use glob::Pattern;
 
 use itertools::Itertools;
 use lintrunner::{
@@ -19,6 +20,9 @@ use lintrunner::{
 use log::debug;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+const DEFAULT_ONLY_LINT_PATTERN: &str = "**";
+const DEFAULT_EXCLUDE_FROM_LINTING_PATTERN: &str = "";
 
 #[derive(Debug, Parser)]
 #[clap(version, name = "lintrunner", infer_subcommands(true))]
@@ -209,6 +213,27 @@ fn do_main() -> Result<i32> {
             .collect::<HashSet<_>>()
     });
 
+    let only_lint = if lint_runner_config.only_lint.is_some() {
+        lint_runner_config.only_lint.clone().unwrap()
+    } else {
+        DEFAULT_ONLY_LINT_PATTERN.to_string()
+    };
+
+    let exclude_from_linting: String = if lint_runner_config.exclude_from_linting.is_some() {
+        lint_runner_config.exclude_from_linting.clone().unwrap()
+    } else {
+        DEFAULT_EXCLUDE_FROM_LINTING_PATTERN.to_string()
+    };
+
+    let excluded_patterns = exclude_from_linting
+        .split(',')
+        .map(|pattern_name| Pattern::new(&pattern_name.trim()).unwrap())
+        .collect::<Vec<_>>();
+
+    let included_patterns = only_lint
+        .split(',')
+        .map(|pattern_name| Pattern::new(&pattern_name.trim()).unwrap())
+        .collect::<Vec<_>>();
     // If we are formatting, the universe of linters to select from should be
     // restricted to only formatters.
     // (NOTE: we pay an allocation for `placeholder` even in cases where we are
@@ -284,6 +309,8 @@ fn do_main() -> Result<i32> {
                 enable_spinners,
                 revision_opt,
                 args.tee_json,
+                included_patterns,
+                excluded_patterns,
             )
         }
         SubCommand::Lint => {
@@ -298,6 +325,8 @@ fn do_main() -> Result<i32> {
                 enable_spinners,
                 revision_opt,
                 args.tee_json,
+                included_patterns,
+                excluded_patterns,
             )
         }
         SubCommand::Rage { invocation } => do_rage(&persistent_data_store, invocation),

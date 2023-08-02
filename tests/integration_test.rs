@@ -43,6 +43,28 @@ fn temp_config(contents: &str) -> Result<tempfile::NamedTempFile> {
     Ok(config)
 }
 
+fn temp_config_returning_msg_with_params(
+    lint_message: LintMessage,
+    exclude_from_linting: String,
+    only_lint: String,
+) -> Result<tempfile::NamedTempFile> {
+    let serialized = serde_json::to_string(&lint_message)?;
+    let config = temp_config(&format!(
+        "\
+            exclude_from_linting = '{}'
+            only_lint = '{}'
+            merge_base = \"some_base\"
+            [[linter]]
+            code = 'TESTLINTER'
+            include_patterns = ['**']
+            command = ['echo', '{}']
+        ",
+        exclude_from_linting, only_lint, serialized
+    ))?;
+
+    Ok(config)
+}
+
 fn temp_config_returning_msg(lint_message: LintMessage) -> Result<tempfile::NamedTempFile> {
     let serialized = serde_json::to_string(&lint_message)?;
     let config = temp_config(&format!(
@@ -234,6 +256,108 @@ fn simple_linter_succeeds_with_nonexistent_second_config() -> Result<()> {
     cmd.arg("README.md");
     cmd.assert().failure();
     assert_output_snapshot("simple_linter_fake_second_config", &mut cmd)?;
+
+    Ok(())
+}
+
+#[test]
+#[cfg_attr(target_os = "windows", ignore)] // STDERR string is different
+fn simple_linter_exclude() -> Result<()> {
+    let data_path = tempfile::tempdir()?;
+    let lint_message = LintMessage {
+        path: Some("tests/fixtures/fake_source_file.rs".to_string()),
+        line: Some(9),
+        char: Some(1),
+        code: "DUMMY".to_string(),
+        name: "dummy failure".to_string(),
+        severity: LintSeverity::Advice,
+        original: None,
+        replacement: None,
+        description: Some("A dummy linter failure".to_string()),
+    };
+    let config = temp_config_returning_msg_with_params(
+        lint_message,
+        "**/README.md".to_string(),
+        "**".to_string(),
+    )?;
+
+    let mut cmd = Command::cargo_bin("lintrunner")?;
+    cmd.arg(format!("--config={}", config.path().to_str().unwrap()));
+    cmd.arg(format!(
+        "--data-path={}",
+        data_path.path().to_str().unwrap()
+    ));
+    // Run on a file to ensure that the linter is run.
+    cmd.arg("README.md");
+    cmd.assert().success();
+    assert_output_snapshot("simple_linter_exclude", &mut cmd)?;
+
+    Ok(())
+}
+
+#[test]
+#[cfg_attr(target_os = "windows", ignore)] // STDERR string is different
+fn simple_linter_exclude_multifile() -> Result<()> {
+    let data_path = tempfile::tempdir()?;
+    let lint_message = LintMessage {
+        path: Some("tests/fixtures/fake_source_file.rs".to_string()),
+        line: Some(9),
+        char: Some(1),
+        code: "DUMMY".to_string(),
+        name: "dummy failure".to_string(),
+        severity: LintSeverity::Advice,
+        original: None,
+        replacement: None,
+        description: Some("A dummy linter failure".to_string()),
+    };
+    let config = temp_config_returning_msg_with_params(
+        lint_message,
+        "**/README.md".to_string(),
+        "**".to_string(),
+    )?;
+
+    let mut cmd = Command::cargo_bin("lintrunner")?;
+    cmd.arg(format!("--config={}", config.path().to_str().unwrap()));
+    cmd.arg(format!(
+        "--data-path={}",
+        data_path.path().to_str().unwrap()
+    ));
+    cmd.arg("README.md");
+    cmd.arg("LICENSE");
+    cmd.assert().failure();
+    assert_output_snapshot("simple_linter_exclude_multifile", &mut cmd)?;
+
+    Ok(())
+}
+
+#[test]
+#[cfg_attr(target_os = "windows", ignore)] // STDERR string is different
+fn simple_linter_only_lint_rs() -> Result<()> {
+    let data_path = tempfile::tempdir()?;
+    let lint_message = LintMessage {
+        path: Some("tests/fixtures/fake_source_file.rs".to_string()),
+        line: Some(9),
+        char: Some(1),
+        code: "DUMMY".to_string(),
+        name: "dummy failure".to_string(),
+        severity: LintSeverity::Advice,
+        original: None,
+        replacement: None,
+        description: Some("A dummy linter failure".to_string()),
+    };
+    let config =
+        temp_config_returning_msg_with_params(lint_message, "".to_string(), "**/*.rs".to_string())?;
+
+    let mut cmd = Command::cargo_bin("lintrunner")?;
+    cmd.arg(format!("--config={}", config.path().to_str().unwrap()));
+    cmd.arg(format!(
+        "--data-path={}",
+        data_path.path().to_str().unwrap()
+    ));
+    // Run on a file to ensure that the linter is run but it skips everything.
+    cmd.arg("README.md");
+    cmd.assert().success();
+    assert_output_snapshot("simple_linter_only_lint_rs", &mut cmd)?;
 
     Ok(())
 }
