@@ -159,7 +159,7 @@ pub fn do_lint(
     enable_spinners: bool,
     revision_opt: RevisionOpt,
     tee_json: Option<String>,
-    only_under_config_dir: bool,
+    only_lint_under_config_dir: bool,
 ) -> Result<i32> {
     debug!(
         "Running linters: {:?}",
@@ -187,17 +187,13 @@ pub fn do_lint(
     files.sort();
     files.dedup();
 
-    if only_under_config_dir{
+    if only_lint_under_config_dir {
         let config_dir = linters[0].get_config_dir();
         files = files
-        .into_iter()
-        .filter(|path| {
-            path.starts_with(config_dir
-            )
-        })
-        .collect();
+            .into_iter()
+            .filter(|path| path.starts_with(config_dir))
+            .collect();
     }
-
 
     let files = Arc::new(files);
 

@@ -20,6 +20,8 @@ pub struct LintRunnerConfig {
     #[serde()]
     pub merge_base_with: Option<String>,
 
+    /// If set, will only lint files under the directory where the configuration file is located and its subdirectories.
+    /// Supercedes command line argument.
     #[serde()]
     pub only_lint_under_config_dir: Option<bool>,
 }

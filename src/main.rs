@@ -109,9 +109,9 @@ struct Args {
     #[clap(long, conflicts_with_all=&["paths", "paths-cmd", "paths-from", "revision", "merge-base-with"], global = true)]
     all_files: bool,
 
-    /// If set, only lint files in the same directory as the primary config file (and subdirectories).
+    /// If set, will only lint files under the directory where the configuration file is located and its subdirectories.
     #[clap(long, global = true)]
-    only_under_config_dir: bool,
+    only_lint_under_config_dir: bool,
 }
 
 #[derive(Debug, Parser)]
@@ -261,9 +261,8 @@ fn do_main() -> Result<i32> {
     let only_lint_under_config_dir = if lint_runner_config.only_lint_under_config_dir.is_some() {
         lint_runner_config.only_lint_under_config_dir.unwrap()
     } else {
-        args.only_under_config_dir
+        args.only_lint_under_config_dir
     };
-    
 
     let paths_opt = if let Some(paths_file) = args.paths_from {
         let path_file = AbsPath::try_from(&paths_file)
