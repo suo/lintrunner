@@ -1,4 +1,9 @@
 # Lintrunner
+
+### Lintrunner has been moved to [https://github.com/pytorch/test-infra/tree/main/tools/lintrunner](https://github.com/pytorch/test-infra/tree/main/tools/lintrunner)
+
+Please refer to pytorch/test-infra for the current state of the project.
+
 ## Overview
 `lintrunner` is a tool that runs linters. It is responsible for:
 - Deciding which files need to be linted.
