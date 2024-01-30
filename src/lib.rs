@@ -175,6 +175,7 @@ pub fn do_lint(
                     Some(repo.get_merge_base_with(&merge_base_with)?)
                 }
             };
+            debug!("Relative to: {:?}", relative_to);
             repo.get_changed_files(relative_to.as_deref())?
         }
         PathsOpt::PathsCmd(paths_cmd) => get_paths_from_cmd(&paths_cmd)?,
