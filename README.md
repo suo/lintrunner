@@ -1,9 +1,5 @@
 # Lintrunner
 
-### Lintrunner has been moved to [https://github.com/pytorch/test-infra/tree/main/tools/lintrunner](https://github.com/pytorch/test-infra/tree/main/tools/lintrunner)
-
-Please refer to pytorch/test-infra for the current state of the project.
-
 ## Overview
 `lintrunner` is a tool that runs linters. It is responsible for:
 - Deciding which files need to be linted.
@@ -49,9 +45,9 @@ git grep -Il . | xargs lintrunner
 ```
 
 ### `--configs`/ `--config`
-"Comma-separated paths to lintrunner configuration files. 
-Multiple files are merged, with later definitions overriding earlier ones. 
-ONLY THE FIRST is required to be present on your machine. 
+"Comma-separated paths to lintrunner configuration files.
+Multiple files are merged, with later definitions overriding earlier ones.
+ONLY THE FIRST is required to be present on your machine.
 Defaults to `lintrunner.toml, lintrunner.private.toml`. Extra configs like `lintrunner.private.toml`
  are useful for combining project-wide and local configs."
 
@@ -79,9 +75,9 @@ hash or revspec. If this is specified, `lintrunner` will check:
 - All paths changed in the user's working tree.
 
 ### `--merge-base-with`
-Like `--revision`, except the revision is determined by computing the merge-base 
-of `HEAD` and the provided `<tree-ish>`. This is useful for linting all commits 
-in a specific pull request. For example, for a pull request targeting master, 
+Like `--revision`, except the revision is determined by computing the merge-base
+of `HEAD` and the provided `<tree-ish>`. This is useful for linting all commits
+in a specific pull request. For example, for a pull request targeting master,
 you can run:
 ```
 lintrunner -m master
