@@ -88,8 +88,10 @@ impl version_control::System for Repo {
 
 #[cfg(test)]
 mod tests {
-    use std::{fs::OpenOptions, io::Write};
+    use once_cell::sync::Lazy;
+    use std::{fs::OpenOptions, io::Write, sync::Mutex}; // 1.4.0
 
+    static SL_GLOBAL_MUTEX: Lazy<Mutex<()>> = Lazy::new(Mutex::default);
     use crate::testing;
 
     use super::*;
@@ -103,6 +105,7 @@ mod tests {
 
     impl SaplingClone {
         fn new(git_repo: &testing::GitCheckout) -> Result<SaplingClone> {
+            let _shared = SL_GLOBAL_MUTEX.lock().unwrap();
             let temp_dir = TempDir::new()?;
             assert_eq!(
                 std::process::Command::new("sl")
@@ -123,6 +126,7 @@ mod tests {
         }
 
         fn run(&self, subcommand: &str) -> std::process::Command {
+            let _shared = SL_GLOBAL_MUTEX.lock().unwrap();
             let mut cmd = std::process::Command::new("sl");
             cmd.current_dir(&self.root);
             cmd.arg(subcommand);
@@ -169,6 +173,7 @@ mod tests {
         }
 
         fn changed_files(&self, relative_to: Option<&str>) -> Result<Vec<String>> {
+            let _shared = SL_GLOBAL_MUTEX.lock().unwrap();
             std::env::set_current_dir(&self.root)?;
             use version_control::System;
             let repo = Repo::new()?;
@@ -181,6 +186,7 @@ mod tests {
         }
 
         fn merge_base_with(&self, merge_base_with: &str) -> Result<String> {
+            let _shared = SL_GLOBAL_MUTEX.lock().unwrap();
             std::env::set_current_dir(&self.root)?;
             use version_control::System;
             let repo = Repo::new()?;
