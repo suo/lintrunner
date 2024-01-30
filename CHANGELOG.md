@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.11.1] - 2024-01-30
+
+### Bug Fixes
+
+- Log relative-to argument ([2bbe82f](https://github.com/suo/lintrunner/commit/2bbe82f0d652d59a04ab010be16cf0e85d525d50))
+
+### Documentation
+
+- Update README to include options and link to github action ([#55](https://github.com/suo/lintrunner/issues/55)) ([9efb969](https://github.com/suo/lintrunner/commit/9efb969e27f5775e619a3bbf51576a175557e3f8))
+- Remove redirect to pytorch/test-infra ([f065574](https://github.com/suo/lintrunner/commit/f065574253f003bd7604c5ef67956628add3269c))
+
+### Testing
+
+- Guard sl tests with mutex ([a9feaea](https://github.com/suo/lintrunner/commit/a9feaea47735c98b32685b65e9fe85f0672874f0))
+
 ## [0.10.7] - 2023-03-02
 
 ### Bug Fixes
