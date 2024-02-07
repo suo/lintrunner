@@ -162,6 +162,11 @@ pub fn get_paths_from_cmd(paths_cmd: &str) -> Result<Vec<AbsPath>> {
         .output()
         .context("failed to run provided paths_cmd")?;
 
+    ensure!(
+        output.status.success(),
+        format!("Failed to run provided paths_cmd: '{}'", paths_cmd)
+    );
+
     let files = std::str::from_utf8(&output.stdout).context("failed to parse paths_cmd output")?;
     let files = files
         .lines()
@@ -329,6 +334,12 @@ mod tests {
         let files = git.changed_files(Some("HEAD~2"))?;
         assert_eq!(files.len(), 1);
         Ok(())
+    }
+
+    #[test]
+    fn invalid_get_paths_from_cmd_fails() -> () {
+        assert!(get_paths_from_cmd("asoidjfoaisdjf").is_err());
+        assert!(get_paths_from_cmd("false").is_err());
     }
 
     #[test]
