@@ -67,11 +67,15 @@ struct Args {
     #[clap(long, short, conflicts_with_all=&["paths", "paths-cmd", "paths-from", "revision"], global = true)]
     merge_base_with: Option<String>,
 
-    /// Comma-separated list of linters to skip (e.g. --skip CLANGFORMAT,NOQA)
+    /// Comma-separated list of linters to skip (e.g. --skip CLANGFORMAT,NOQA).
+    ///
+    /// You can run: `lintrunner list` to see available linters.
     #[clap(long, global = true)]
     skip: Option<String>,
 
-    /// Comma-separated list of linters to run (opposite of --skip)
+    /// Comma-separated list of linters to run (opposite of --skip).
+    ///
+    /// You can run: `lintrunner list` to see available linters.
     #[clap(long, global = true)]
     take: Option<String>,
 
@@ -128,6 +132,9 @@ enum SubCommand {
 
     /// Run linters. This is the default if no subcommand is provided.
     Lint,
+
+    /// Show the list of available linters, based on this repo's .lintrunner.toml.
+    List,
 
     /// Create a bug report for a past invocation of lintrunner.
     Rage {
@@ -313,6 +320,13 @@ fn do_main() -> Result<i32> {
             )
         }
         SubCommand::Rage { invocation } => do_rage(&persistent_data_store, invocation),
+        SubCommand::List => {
+            println!("Available linters:");
+            for linter in &lint_runner_config.linters {
+                println!("  {}", linter.code);
+            }
+            Ok(0)
+        }
     };
 
     let exit_info = match &res {
