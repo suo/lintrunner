@@ -1,11 +1,9 @@
 ---
 source: tests/integration_test.rs
-assertion_line: 20
 expression: output_lines
 ---
 - "STDOUT:"
-- ok No lint issues.
-- Successfully applied all patches.
+- No linters ran.
 - ""
 - ""
 - "STDERR:"

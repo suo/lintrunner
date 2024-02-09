@@ -165,6 +165,11 @@ pub fn do_lint(
         "Running linters: {:?}",
         linters.iter().map(|l| &l.code).collect::<Vec<_>>()
     );
+    let mut stdout = Term::stdout();
+    if linters.is_empty() {
+        stdout.write_line("No linters ran.")?;
+        return Ok(0);
+    }
 
     let mut files = match paths_opt {
         PathsOpt::Auto => {
@@ -260,8 +265,6 @@ pub fn do_lint(
 
     // Flush the logger before rendering results.
     log::logger().flush();
-
-    let mut stdout = Term::stdout();
 
     let did_print = match render_opt {
         RenderOpt::Default => render_lint_messages(&mut stdout, &all_lints)?,

@@ -878,3 +878,42 @@ fn linter_replacement_trailing_newlines() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn lint_with_no_linters() -> Result<()> {
+    let data_path = tempfile::tempdir()?;
+    let lint_message = LintMessage {
+        path: Some("tests/fixtures/fake_source_file.rs".to_string()),
+        line: Some(9),
+        char: Some(1),
+        code: "DUMMY".to_string(),
+        name: "dummy failure".to_string(),
+        severity: LintSeverity::Advice,
+        original: None,
+        replacement: None,
+        description: Some("A dummy linter failure".to_string()),
+    };
+    let config = temp_config(&format!(
+        "\
+            [[linter]]
+            code = 'TESTLINTER'
+            include_patterns = ['**']
+            command = ['echo', '{}']
+        ",
+        serde_json::to_string(&lint_message)?
+    ))?;
+
+    let mut cmd = Command::cargo_bin("lintrunner")?;
+    cmd.arg(format!("--config={}", config.path().to_str().unwrap()));
+    cmd.arg(format!(
+        "--data-path={}",
+        data_path.path().to_str().unwrap()
+    ));
+
+    // Run on a file to ensure that the linter is run.
+    cmd.arg("--skip=TESTLINTER");
+    cmd.assert().success();
+    assert_output_snapshot("lint_with_no_linters", &mut cmd)?;
+
+    Ok(())
+}
