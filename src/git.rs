@@ -145,6 +145,30 @@ impl version_control::System for Repo {
             .collect::<Vec<AbsPath>>();
         Ok(filtered_files)
     }
+
+    fn get_all_files(&self, _under: Option<&AbsPath>) -> Result<Vec<AbsPath>> {
+        let output = Command::new("git")
+            .arg("grep")
+            .arg("-Il")
+            .arg(".")
+            .current_dir(&self.root)
+            .output()?;
+
+        ensure_output("git grep -Il", &output)?;
+
+        let files =
+            std::str::from_utf8(&output.stdout).context("failed to parse paths_cmd output")?;
+        let files = files
+            .lines()
+            .map(|s| s.to_string())
+            .collect::<HashSet<String>>();
+        let mut files = files.into_iter().collect::<Vec<String>>();
+        files.sort();
+        files
+            .into_iter()
+            .map(AbsPath::try_from)
+            .collect::<Result<_>>()
+    }
 }
 
 pub fn get_paths_from_cmd(paths_cmd: &str) -> Result<Vec<AbsPath>> {

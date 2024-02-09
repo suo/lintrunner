@@ -171,6 +171,12 @@ pub fn do_lint(
         return Ok(0);
     }
 
+    let config_dir = if only_lint_under_config_dir {
+        Some(AbsPath::try_from(linters[0].get_config_dir())?)
+    } else {
+        None
+    };
+
     let mut files = match paths_opt {
         PathsOpt::Auto => {
             let relative_to = match revision_opt {
@@ -186,20 +192,18 @@ pub fn do_lint(
         PathsOpt::PathsCmd(paths_cmd) => get_paths_from_cmd(&paths_cmd)?,
         PathsOpt::Paths(paths) => get_paths_from_input(paths)?,
         PathsOpt::PathsFile(file) => get_paths_from_file(file)?,
-        PathsOpt::AllFiles => get_paths_from_cmd("git grep -Il .")?,
+        PathsOpt::AllFiles => repo.get_all_files(config_dir.as_ref())?,
     };
 
     // Sort and unique the files so we pass a consistent ordering to linters
-    files.sort();
-    files.dedup();
-
-    if only_lint_under_config_dir {
-        let config_dir = linters[0].get_config_dir();
+    if let Some(config_dir) = config_dir {
         files = files
             .into_iter()
-            .filter(|path| path.starts_with(config_dir))
+            .filter(|path| path.starts_with(&config_dir))
             .collect();
     }
+    files.sort();
+    files.dedup();
 
     let files = Arc::new(files);
 

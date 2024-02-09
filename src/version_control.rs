@@ -1,4 +1,8 @@
-use crate::{git, path, sapling};
+use crate::{
+    git,
+    path::{self, AbsPath},
+    sapling,
+};
 
 use anyhow;
 
@@ -27,6 +31,9 @@ pub trait System {
 
     // Gets the files that have changed relative to the given commit.
     fn get_changed_files(&self, relative_to: Option<&str>) -> anyhow::Result<Vec<path::AbsPath>>;
+
+    // Get all files in the repo.
+    fn get_all_files(&self, under: Option<&AbsPath>) -> anyhow::Result<Vec<AbsPath>>;
 }
 
 impl Repo {
@@ -56,5 +63,9 @@ impl Repo {
             RepoImpl::Git(git) => Box::new(git as &dyn System),
             RepoImpl::Sapling(sapling) => Box::new(sapling as &dyn System),
         }
+    }
+
+    pub fn get_all_files(&self, under: Option<&AbsPath>) -> anyhow::Result<Vec<AbsPath>> {
+        self.get_system().get_all_files(under)
     }
 }

@@ -1,4 +1,8 @@
-use crate::{log_utils, path, version_control};
+use crate::{
+    log_utils,
+    path::{self, AbsPath},
+    version_control,
+};
 
 use anyhow;
 
@@ -39,6 +43,44 @@ impl version_control::System for Repo {
         );
         let merge_base = std::str::from_utf8(&output.stdout)?.trim();
         Ok(merge_base.to_string())
+    }
+
+    fn get_all_files(&self, under: Option<&AbsPath>) -> anyhow::Result<Vec<AbsPath>> {
+        // Output of sl status looks like:
+        // D    src/lib.rs
+        // M    foo/bar.baz
+        let re = regex::Regex::new(r"^[A-Z?]\s+")?;
+
+        let mut cmd = std::process::Command::new("sl");
+        cmd.arg("status").arg("--all");
+        if let Some(under) = under {
+            cmd.arg(under.as_os_str());
+        }
+        cmd.current_dir(&self.root);
+        let output = cmd.output()?;
+        log_utils::ensure_output(&format!("{:?}", cmd), &output)?;
+        let commit_files_str = std::str::from_utf8(&output.stdout)?;
+        let commit_files: std::collections::HashSet<String> = commit_files_str
+            .split('\n')
+            .map(|x| x.to_string())
+            .map(|line| re.replace(&line, "").to_string())
+            .filter(|line| !line.is_empty())
+            .filter(|line| !line.starts_with('I'))
+            .collect();
+
+        let filtered_commit_files = commit_files
+            .into_iter()
+            .map(|f| format!("{}", self.root.join(f).display()))
+            .filter_map(|f| match path::AbsPath::try_from(&f) {
+                Ok(abs_path) => Some(abs_path),
+                Err(_) => {
+                    eprintln!("Failed to find file while gathering files to lint: {}", f);
+                    None
+                }
+            })
+            .collect::<Vec<path::AbsPath>>();
+
+        Ok(filtered_commit_files)
     }
 
     fn get_changed_files(&self, relative_to: Option<&str>) -> anyhow::Result<Vec<path::AbsPath>> {
@@ -92,7 +134,7 @@ mod tests {
     use std::{fs::OpenOptions, io::Write, sync::Mutex}; // 1.4.0
 
     static SL_GLOBAL_MUTEX: Lazy<Mutex<()>> = Lazy::new(Mutex::default);
-    use crate::testing;
+    use crate::{testing, version_control::System};
 
     use super::*;
     use anyhow::Result;
@@ -175,7 +217,6 @@ mod tests {
         fn changed_files(&self, relative_to: Option<&str>) -> Result<Vec<String>> {
             let _shared = SL_GLOBAL_MUTEX.lock().unwrap();
             std::env::set_current_dir(&self.root)?;
-            use version_control::System;
             let repo = Repo::new()?;
             let files = repo.get_changed_files(relative_to)?;
             let files = files
@@ -188,9 +229,15 @@ mod tests {
         fn merge_base_with(&self, merge_base_with: &str) -> Result<String> {
             let _shared = SL_GLOBAL_MUTEX.lock().unwrap();
             std::env::set_current_dir(&self.root)?;
-            use version_control::System;
             let repo = Repo::new()?;
             repo.get_merge_base_with(merge_base_with)
+        }
+
+        fn get_all_files(&self) -> Result<Vec<AbsPath>> {
+            let _shared = SL_GLOBAL_MUTEX.lock().unwrap();
+            std::env::set_current_dir(&self.root)?;
+            let repo = Repo::new()?;
+            repo.get_all_files(None)
         }
     }
 
@@ -371,6 +418,34 @@ mod tests {
 
         let files = sl.changed_files(Some(".^^"))?;
         assert_eq!(files.len(), 1);
+        Ok(())
+    }
+
+    #[test]
+    #[cfg_attr(target_os = "windows", ignore)] // remove when sapling installation is better
+    #[cfg_attr(target_os = "linux", ignore)] // remove when sapling installation is better
+    fn get_all_files() -> Result<()> {
+        let git = testing::GitCheckout::new()?;
+        git.write_file("test_1.txt", "Initial commit")?;
+        git.write_file("test_2.txt", "Initial commit")?;
+        git.write_file("test_3.txt", "Initial commit")?;
+        git.write_file("test_4.txt", "Initial commit")?;
+
+        git.add(".")?;
+        git.commit("I am main")?;
+        let sl = SaplingClone::new(&git)?;
+        let mut all_files = sl.get_all_files()?;
+        all_files.sort();
+        assert_eq!(
+            all_files,
+            vec!(
+                AbsPath::try_from("README")?,
+                AbsPath::try_from("test_1.txt")?,
+                AbsPath::try_from("test_2.txt")?,
+                AbsPath::try_from("test_3.txt")?,
+                AbsPath::try_from("test_4.txt")?
+            )
+        );
         Ok(())
     }
 
