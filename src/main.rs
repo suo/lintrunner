@@ -190,8 +190,6 @@ fn do_main() -> Result<i32> {
     debug!("Version: {VERSION}");
     debug!("Passed args: {:?}", std::env::args());
     debug!("Computed args: {:?}", args);
-    let repo = version_control::Repo::new()?;
-    debug!("Current rev: {}", repo.get_head()?);
 
     // report config paths which do not exist
     for path in &config_paths {
@@ -293,7 +291,6 @@ fn do_main() -> Result<i32> {
         SubCommand::Format => {
             check_init_changed(&persistent_data_store, &lint_runner_config)?;
             do_lint(
-                &repo,
                 linters,
                 paths_opt,
                 true, // always apply patches when we use the format command
@@ -308,7 +305,6 @@ fn do_main() -> Result<i32> {
             // Default command is to just lint.
             check_init_changed(&persistent_data_store, &lint_runner_config)?;
             do_lint(
-                &repo,
                 linters,
                 paths_opt,
                 args.apply_patches,

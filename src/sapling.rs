@@ -1,7 +1,7 @@
 use crate::{
     log_utils,
     path::{self, AbsPath},
-    version_control,
+    version_control::VersionControl,
 };
 
 use anyhow;
@@ -10,7 +10,7 @@ pub struct Repo {
     root: path::AbsPath,
 }
 
-impl version_control::System for Repo {
+impl VersionControl for Repo {
     fn new() -> anyhow::Result<Self> {
         let output = std::process::Command::new("sl").arg("root").output()?;
         anyhow::ensure!(output.status.success(), "Failed to determine Sapling root");
@@ -134,7 +134,7 @@ mod tests {
     use std::{fs::OpenOptions, io::Write, sync::Mutex}; // 1.4.0
 
     static SL_GLOBAL_MUTEX: Lazy<Mutex<()>> = Lazy::new(Mutex::default);
-    use crate::{testing, version_control::System};
+    use crate::testing;
 
     use super::*;
     use anyhow::Result;

@@ -1,6 +1,6 @@
 use std::{fs::OpenOptions, io::Write, process::Command};
 
-use crate::version_control;
+use crate::get_version_control;
 
 use anyhow::Result;
 use tempfile::TempDir;
@@ -82,7 +82,7 @@ impl GitCheckout {
 
     pub fn changed_files(&self, relative_to: Option<&str>) -> Result<Vec<String>> {
         std::env::set_current_dir(self.root())?;
-        let repo = version_control::Repo::new()?;
+        let repo = get_version_control()?;
         let files = repo.get_changed_files(relative_to)?;
         let files = files
             .into_iter()
@@ -93,7 +93,7 @@ impl GitCheckout {
 
     pub fn merge_base_with(&self, merge_base_with: &str) -> Result<String> {
         std::env::set_current_dir(self.root())?;
-        let repo = version_control::Repo::new()?;
+        let repo = get_version_control()?;
         repo.get_merge_base_with(merge_base_with)
     }
 

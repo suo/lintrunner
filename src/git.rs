@@ -3,7 +3,7 @@ use std::{collections::HashSet, convert::TryFrom, process::Command};
 use crate::{
     log_utils::{ensure_output, log_files},
     path::AbsPath,
-    version_control,
+    version_control::VersionControl,
 };
 use anyhow::{ensure, Context, Result};
 use log::debug;
@@ -13,7 +13,7 @@ pub struct Repo {
     root: AbsPath,
 }
 
-impl version_control::System for Repo {
+impl VersionControl for Repo {
     fn new() -> Result<Repo> {
         // Retrieve the git root based on the current working directory.
         let output = Command::new("git")

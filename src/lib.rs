@@ -13,6 +13,7 @@ use std::convert::TryFrom;
 use std::fs::OpenOptions;
 use std::sync::{Arc, Mutex};
 use std::thread;
+use version_control::VersionControl;
 
 pub mod git;
 pub mod init;
@@ -150,8 +151,16 @@ pub enum RenderOpt {
     Oneline,
 }
 
+pub fn get_version_control() -> Result<Box<dyn VersionControl>> {
+    let repo = git::Repo::new();
+    if let Ok(repo) = repo {
+        return Ok(Box::new(repo));
+    }
+
+    Ok(Box::new(sapling::Repo::new()?))
+}
+
 pub fn do_lint(
-    repo: &version_control::Repo,
     linters: Vec<Linter>,
     paths_opt: PathsOpt,
     should_apply_patches: bool,
@@ -165,6 +174,7 @@ pub fn do_lint(
         "Running linters: {:?}",
         linters.iter().map(|l| &l.code).collect::<Vec<_>>()
     );
+    let repo = get_version_control()?;
     let mut stdout = Term::stdout();
     if linters.is_empty() {
         stdout.write_line("No linters ran.")?;
