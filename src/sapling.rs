@@ -59,16 +59,16 @@ impl version_control::System for Repo {
         cmd.current_dir(&self.root);
         let output = cmd.output()?;
         log_utils::ensure_output(&format!("{:?}", cmd), &output)?;
-        let commit_files_str = std::str::from_utf8(&output.stdout)?;
-        let commit_files: std::collections::HashSet<String> = commit_files_str
+        let all_files_str = std::str::from_utf8(&output.stdout)?;
+        let all_files: std::collections::HashSet<String> = all_files_str
             .split('\n')
             .map(|x| x.to_string())
+            .filter(|line| !line.starts_with('I'))
             .map(|line| re.replace(&line, "").to_string())
             .filter(|line| !line.is_empty())
-            .filter(|line| !line.starts_with('I'))
             .collect();
 
-        let filtered_commit_files = commit_files
+        let filtered_all_files = all_files
             .into_iter()
             .map(|f| format!("{}", self.root.join(f).display()))
             .filter_map(|f| match path::AbsPath::try_from(&f) {
@@ -80,7 +80,7 @@ impl version_control::System for Repo {
             })
             .collect::<Vec<path::AbsPath>>();
 
-        Ok(filtered_commit_files)
+        Ok(filtered_all_files)
     }
 
     fn get_changed_files(&self, relative_to: Option<&str>) -> anyhow::Result<Vec<path::AbsPath>> {
