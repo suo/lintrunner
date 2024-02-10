@@ -175,7 +175,6 @@ impl PersistentDataStore {
             .collect::<Result<Vec<_>, std::io::Error>>()?;
 
         run_dirs.sort_unstable();
-        run_dirs.pop(); // Don't include the current run.
         run_dirs.reverse();
 
         debug!("Found past runs: {:?}", run_dirs);
@@ -209,14 +208,19 @@ impl PersistentDataStore {
 
         let mut ret = Vec::new();
 
-        // Skip the first one as it is the current run.
         for dir in run_dirs.into_iter() {
             debug!("Reading run info from {}", dir.display());
+            let run_data = std::fs::read_to_string(dir.join("run_info.json"));
+            let exit_data = std::fs::read_to_string(dir.join("exit_info.json"));
+            if run_data.is_err() || exit_data.is_err() {
+                // If we couldn't find one of the runfiles, just skip it. We can
+                // fail to write it for a variety of reasons, including a simple
+                // sigterm.
+                continue;
+            }
 
-            let run_info: RunInfo =
-                serde_json::from_str(&std::fs::read_to_string(dir.join("run_info.json"))?)?;
-            let exit_info: ExitInfo =
-                serde_json::from_str(&std::fs::read_to_string(dir.join("exit_info.json"))?)?;
+            let run_info: RunInfo = serde_json::from_str(&run_data?)?;
+            let exit_info: ExitInfo = serde_json::from_str(&exit_data?)?;
             ret.push((run_info, exit_info));
         }
         Ok(ret)
