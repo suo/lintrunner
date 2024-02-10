@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.12.0] - 2024-02-10
+
+### Bug Fixes
+
+- Properly fail if --get_paths cmd fails ([53c4961](https://github.com/suo/lintrunner/commit/53c496184eac9545e83d6a2714adf0bc1457316c))
+- Dont panic when no linters are specified ([0527cf0](https://github.com/suo/lintrunner/commit/0527cf0792956a88a5fb2454688c975d0a8c8baf))
+- Make --all-files work with sl ([2df4572](https://github.com/suo/lintrunner/commit/2df4572ddf1a630889a0150ac8e6bf9d63340839))
+
+### Features
+
+- Add a list subcommand to show available linters ([0765237](https://github.com/suo/lintrunner/commit/0765237900aaa7e0ecb3491227b073fa72216b36))
+
+### Testing
+
+- Fix snapshot test ([7c345da](https://github.com/suo/lintrunner/commit/7c345da7342aca42645cab8551ef232581083f11))
+
 ## [0.11.1] - 2024-01-30
 
 ### Bug Fixes
