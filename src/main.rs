@@ -14,7 +14,7 @@ use lintrunner::{
     persistent_data::{ExitInfo, PersistentDataStore, RunInfo},
     rage::do_rage,
     render::print_error,
-    version_control, PathsOpt, RenderOpt, RevisionOpt,
+    PathsOpt, RenderOpt, RevisionOpt,
 };
 use log::debug;
 
