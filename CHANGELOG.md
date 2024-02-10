@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.12.1] - 2024-02-10
+
+### Bug Fixes
+
+- Properly filter ignored files in sapling all-files ([34dd8b2](https://github.com/suo/lintrunner/commit/34dd8b295c58b1055916f18dd55272fffc64e705))
+- Make rage command robust to missing data ([a96ceec](https://github.com/suo/lintrunner/commit/a96ceec6ce3f8ae798f08d34c5f6de133814363b))
+
 ## [0.12.0] - 2024-02-10
 
 ### Bug Fixes
