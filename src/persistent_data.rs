@@ -175,7 +175,7 @@ impl PersistentDataStore {
             .collect::<Result<Vec<_>, std::io::Error>>()?;
 
         run_dirs.sort_unstable();
-        run_dirs.pop();  // pop most recent job as it won't have a report yet.
+        run_dirs.pop(); // pop most recent job as it won't have a report yet.
         run_dirs.reverse();
 
         debug!("Found past runs: {:?}", run_dirs);
