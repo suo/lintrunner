@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.12.5] - 2024-04-09
+
+### Features
+
+- Add gist/pastry upload to lintrunner rage ([bd224ae](https://github.com/suo/lintrunner/commit/bd224aefdc5144cc85276695cd4fabf170f183a0))
+
 ## [0.12.1] - 2024-02-10
 
 ### Bug Fixes
