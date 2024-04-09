@@ -72,7 +72,7 @@ impl PersistentDataStore {
         let runs_dir = config_data_dir.join(RUNS_DIR_NAME);
         let cur_run_dir = runs_dir.join(cur_run_info.dir_name());
 
-        std::fs::create_dir_all(&cur_run_dir)?;
+        std::fs::create_dir_all(cur_run_dir)?;
 
         PersistentDataStore::clean_old_runs(&runs_dir)?;
 
@@ -116,10 +116,10 @@ impl PersistentDataStore {
             std::fs::create_dir(&run_path)?;
         }
         let run_info = serde_json::to_string_pretty(&self.cur_run_info)?;
-        std::fs::write(&run_path.join("run_info.json"), &run_info)?;
+        std::fs::write(run_path.join("run_info.json"), run_info)?;
 
         let exit_info = serde_json::to_string_pretty(&exit_info)?;
-        std::fs::write(&run_path.join("exit_info.json"), exit_info)?;
+        std::fs::write(run_path.join("exit_info.json"), exit_info)?;
         Ok(())
     }
 
@@ -257,7 +257,7 @@ impl PersistentDataStore {
         let config_contents = config_contents.extract::<LintRunnerConfig>()?;
         let path = self.relative_path(CONFIG_DATA_NAME);
         let serialized_contents = serde_json::to_string_pretty(&config_contents)?;
-        std::fs::write(path, &serialized_contents)?;
+        std::fs::write(path, serialized_contents)?;
         Ok(())
     }
 

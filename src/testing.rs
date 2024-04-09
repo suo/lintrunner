@@ -55,7 +55,7 @@ impl GitCheckout {
 
     pub fn checkout_new_branch(&self, branch_name: &str) -> Result<()> {
         let output = Command::new("git")
-            .args(&["checkout", "-b", branch_name])
+            .args(["checkout", "-b", branch_name])
             .current_dir(self.root())
             .output()?;
         assert!(output.status.success());
@@ -64,7 +64,7 @@ impl GitCheckout {
 
     pub fn add(&self, pathspec: &str) -> Result<()> {
         let output = Command::new("git")
-            .args(&["add", pathspec])
+            .args(["add", pathspec])
             .current_dir(self.root())
             .output()?;
         assert!(output.status.success());
@@ -73,7 +73,7 @@ impl GitCheckout {
 
     pub fn commit(&self, message: &str) -> Result<()> {
         let output = Command::new("git")
-            .args(&["commit", "-m", message])
+            .args(["commit", "-m", message])
             .current_dir(self.root())
             .output()?;
         assert!(output.status.success());

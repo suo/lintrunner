@@ -178,7 +178,7 @@ fn do_main() -> Result<i32> {
     // clone split by commas and trim whitespace
     let config_paths: Vec<String> = args
         .configs
-        .split(",")
+        .split(',')
         .map(|path| path.trim().to_string())
         .collect_vec();
     // check if first config path exists
