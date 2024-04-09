@@ -225,7 +225,7 @@ fn write_context_diff(stdout: &mut impl Write, original: &str, replacement: &str
     let diff = TextDiff::from_lines(original, replacement);
 
     let mut max_line_number = 1;
-    for (_, group) in diff.grouped_ops(3).iter().enumerate() {
+    for group in diff.grouped_ops(3).iter() {
         for op in group {
             for change in diff.iter_inline_changes(op) {
                 let old_line = change.old_index().unwrap_or(0) + 1;

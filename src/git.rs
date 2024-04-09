@@ -361,7 +361,7 @@ mod tests {
     }
 
     #[test]
-    fn invalid_get_paths_from_cmd_fails() -> () {
+    fn invalid_get_paths_from_cmd_fails() {
         assert!(get_paths_from_cmd("asoidjfoaisdjf").is_err());
         assert!(get_paths_from_cmd("false").is_err());
     }

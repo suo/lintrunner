@@ -57,3 +57,5 @@ jobs:
           sarif_file: lintrunner.sarif
           category: lintrunner
           checkout_path: ${{ github.workspace }}
+      - name: Run Clippy
+        run: cargo clippy -- -D warnings --verbose

@@ -3,7 +3,7 @@ use assert_cmd::Command;
 use insta::{assert_snapshot, assert_yaml_snapshot};
 use lintrunner::lint_message::{LintMessage, LintSeverity};
 use regex::Regex;
-use serde_json;
+
 use std::io::Write;
 
 fn assert_output_snapshot(name: &str, cmd: &mut Command) -> Result<()> {
@@ -870,7 +870,7 @@ fn linter_replacement_trailing_newlines() -> Result<()> {
         "--data-path={}",
         data_path.path().to_str().unwrap()
     ));
-    cmd.arg(format!("--force-color"));
+    cmd.arg("--force-color");
     // Run on a file to ensure that the linter is run.
     cmd.arg("README.md");
     cmd.assert().failure();

@@ -42,9 +42,7 @@ fn group_lints_by_file(
     lints: Vec<LintMessage>,
 ) {
     lints.into_iter().fold(all_lints, |acc, lint| {
-        acc.entry(lint.path.clone())
-            .or_insert_with(Vec::new)
-            .push(lint);
+        acc.entry(lint.path.clone()).or_default().push(lint);
         acc
     });
 }
@@ -160,6 +158,7 @@ pub fn get_version_control() -> Result<Box<dyn VersionControl>> {
     Ok(Box::new(sapling::Repo::new()?))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn do_lint(
     linters: Vec<Linter>,
     paths_opt: PathsOpt,
@@ -207,10 +206,7 @@ pub fn do_lint(
 
     // Sort and unique the files so we pass a consistent ordering to linters
     if let Some(config_dir) = config_dir {
-        files = files
-            .into_iter()
-            .filter(|path| path.starts_with(&config_dir))
-            .collect();
+        files.retain(|path| path.starts_with(&config_dir));
     }
     files.sort();
     files.dedup();
