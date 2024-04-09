@@ -141,6 +141,12 @@ enum SubCommand {
         /// Choose a specific invocation to report on. 0 is the most recent run.
         #[clap(long, short)]
         invocation: Option<usize>,
+        /// Set to upload the report to github gist (if available)
+        #[clap(long, short, action)]
+        gist: bool,
+        /// Set to upload the report to pastry (if available)
+        #[clap(long, short, action)]
+        pastry: bool,
     },
 }
 
@@ -315,7 +321,11 @@ fn do_main() -> Result<i32> {
                 only_lint_under_config_dir,
             )
         }
-        SubCommand::Rage { invocation } => do_rage(&persistent_data_store, invocation),
+        SubCommand::Rage {
+            invocation,
+            gist,
+            pastry,
+        } => do_rage(&persistent_data_store, invocation, gist, pastry),
         SubCommand::List => {
             println!("Available linters:");
             for linter in &lint_runner_config.linters {
