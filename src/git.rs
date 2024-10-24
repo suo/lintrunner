@@ -1,4 +1,4 @@
-use std::{collections::HashSet, convert::TryFrom, process::Command};
+use std::{collections::HashSet, convert::TryFrom, ffi::OsStr, path::Path, process::Command};
 
 use crate::{
     log_utils::{ensure_output, log_files},
@@ -160,14 +160,14 @@ impl VersionControl for Repo {
             std::str::from_utf8(&output.stdout).context("failed to parse paths_cmd output")?;
         let files = files
             .lines()
-            .map(|s| s.to_string())
-            .collect::<HashSet<String>>();
-        let mut files = files.into_iter().collect::<Vec<String>>();
+            .map(|s| OsStr::new(s))
+            .collect::<HashSet<&OsStr>>();
+        let mut files = files.into_iter().collect::<Vec<&OsStr>>();
         files.sort();
         files
             .into_iter()
-            .map(AbsPath::try_from)
-            .collect::<Result<_>>()
+            .map(|p: &OsStr| AbsPath::try_from(AsRef::<Path>::as_ref(p)))
+            .collect::<Result<Vec<AbsPath>>>()
     }
 }
 
