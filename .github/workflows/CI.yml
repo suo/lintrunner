@@ -39,7 +39,7 @@ jobs:
           git config --global user.email "fake@email.com"
           git config --global user.name "mr fake"
       - name: Install and initialize sapling on macos
-        if: matrix.os == 'macos-latest'
+        if: false && matrix.os == 'macos-latest'
         run: |
           brew install sapling
           sl config --user ui.username "mr fake <fake@email.com>"
