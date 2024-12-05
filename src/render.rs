@@ -344,17 +344,6 @@ impl fmt::Display for Changeset {
     }
 }
 
-struct Line(Option<usize>);
-
-impl fmt::Display for Line {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self.0 {
-            None => write!(f, "    "),
-            Some(idx) => write!(f, "{:<4}", idx + 1),
-        }
-    }
-}
-
 pub fn print_error(err: &anyhow::Error) -> std::io::Result<()> {
     let mut stderr = Term::stderr();
     let mut chain = err.chain();
