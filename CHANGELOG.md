@@ -1,6 +1,12 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [0.12.6] - 2024-12-05
+
+### Bug Fixes
+
+- Build x86\_64 wheels for Windows ([a4d6b74](https://github.com/suo/lintrunner/commit/a4d6b7469307acae7228d95ee08a4764b1e655f2))
+
 
 ## [0.12.5] - 2024-04-09
 
