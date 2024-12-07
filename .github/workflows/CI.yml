@@ -40,6 +40,7 @@ jobs:
         run: |
           git config --global user.email "fake@email.com"
           git config --global user.name "mr fake"
+          git config --global init.defaultBranch main
       - name: Install and initialize sapling on macos
         if: matrix.os == 'macos-latest'
         run: |
