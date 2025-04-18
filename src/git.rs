@@ -8,6 +8,8 @@ use crate::{
 use anyhow::{ensure, Context, Result};
 use log::debug;
 use regex::Regex;
+use std::ffi::{OsStr, OsString};
+use std::os::unix::ffi::OsStrExt;
 
 pub struct Repo {
     root: AbsPath,
@@ -150,23 +152,30 @@ impl VersionControl for Repo {
         let output = Command::new("git")
             .arg("grep")
             .arg("-Il")
+            .arg("--null")
             .arg(".")
             .current_dir(&self.root)
             .output()?;
 
         ensure_output("git grep -Il", &output)?;
 
-        let files =
-            std::str::from_utf8(&output.stdout).context("failed to parse paths_cmd output")?;
-        let files = files
-            .lines()
-            .map(|s| s.to_string())
-            .collect::<HashSet<String>>();
-        let mut files = files.into_iter().collect::<Vec<String>>();
+        // Don't convert to str - instead use OsString so we properly handle non-utf8 filenames.
+        let files = output
+            .stdout
+            .split(|&b| b == 0)
+            .filter(|s| !s.is_empty())
+            .map(|s| OsStr::from_bytes(s).to_os_string())
+            .collect::<HashSet<OsString>>();
+
+        let mut files = files.into_iter().collect::<Vec<OsString>>();
+        
         files.sort();
+        fn try_from_with_error_context(f: OsString) -> Result<AbsPath> {
+            AbsPath::try_from(&f).with_context(|| format!("unable to get absolute path on {f:?}"))
+        }
         files
             .into_iter()
-            .map(AbsPath::try_from)
+            .map(try_from_with_error_context)
             .collect::<Result<_>>()
     }
 }
