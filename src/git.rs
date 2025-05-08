@@ -1,5 +1,3 @@
-#[cfg(windows)]
-use std::str::FromStr;
 use std::{collections::HashSet, convert::TryFrom, process::Command};
 
 use crate::{
@@ -11,8 +9,6 @@ use anyhow::{ensure, Context, Result};
 use log::debug;
 use regex::Regex;
 use std::path::{Path, PathBuf};
-#[cfg(unix)]
-use std::{ffi::OsStr, os::unix::ffi::OsStrExt};
 
 pub struct Repo {
     root: AbsPath,
@@ -182,6 +178,8 @@ impl VersionControl for Repo {
 // we'll have a custom function to do the conversion.
 #[cfg(unix)]
 fn convert_filename<'s, I: Iterator<Item = &'s [u8]>>(files: I) -> Result<HashSet<PathBuf>> {
+    use std::{ffi::OsStr, os::unix::ffi::OsStrExt};
+
     // Don't convert to str (which is utf8) - instead use OsString so we
     // properly handle non-utf8 filenames.
     let mut result = HashSet::new();
@@ -194,6 +192,8 @@ fn convert_filename<'s, I: Iterator<Item = &'s [u8]>>(files: I) -> Result<HashSe
 }
 #[cfg(windows)]
 fn convert_filename<'s, I: Iterator<Item = &'s [u8]>>(files: I) -> Result<HashSet<PathBuf>> {
+    use std::str::FromStr;
+
     // Windows seems to use utf8 for raw command output.
     let mut result = HashSet::new();
     for name in files {
