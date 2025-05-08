@@ -5,7 +5,6 @@ use std::{
     ops::Deref,
     path::{Path, PathBuf},
 };
-use std::ffi::{OsStr, OsString};
 
 /// Represents a canonicalized path to a file or directory.
 #[derive(PartialOrd, Ord, Eq, PartialEq, Hash, Clone)]
@@ -60,24 +59,6 @@ impl TryFrom<String> for AbsPath {
 impl TryFrom<&str> for AbsPath {
     type Error = anyhow::Error;
     fn try_from(p: &str) -> Result<Self> {
-        Ok(AbsPath {
-            inner: PathBuf::from(p).canonicalize()?,
-        })
-    }
-}
-
-impl TryFrom<&OsStr> for AbsPath {
-    type Error = anyhow::Error;
-    fn try_from(p: &OsStr) -> Result<Self> {
-        Ok(AbsPath {
-            inner: PathBuf::from(p).canonicalize()?,
-        })
-    }
-}
-
-impl TryFrom<&OsString> for AbsPath {
-    type Error = anyhow::Error;
-    fn try_from(p: &OsString) -> Result<Self> {
         Ok(AbsPath {
             inner: PathBuf::from(p).canonicalize()?,
         })

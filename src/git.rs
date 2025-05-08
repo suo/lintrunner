@@ -1,3 +1,5 @@
+#[cfg(windows)]
+use std::str::FromStr;
 use std::{collections::HashSet, convert::TryFrom, process::Command};
 
 use crate::{
@@ -8,8 +10,9 @@ use crate::{
 use anyhow::{ensure, Context, Result};
 use log::debug;
 use regex::Regex;
-use std::ffi::{OsStr, OsString};
-use std::os::unix::ffi::OsStrExt;
+use std::path::{Path, PathBuf};
+#[cfg(unix)]
+use std::{ffi::OsStr, os::unix::ffi::OsStrExt};
 
 pub struct Repo {
     root: AbsPath,
@@ -159,25 +162,46 @@ impl VersionControl for Repo {
 
         ensure_output("git grep -Il", &output)?;
 
-        // Don't convert to str - instead use OsString so we properly handle non-utf8 filenames.
-        let files = output
-            .stdout
-            .split(|&b| b == 0)
-            .filter(|s| !s.is_empty())
-            .map(|s| OsStr::from_bytes(s).to_os_string())
-            .collect::<HashSet<OsString>>();
+        let files = output.stdout.split(|&b| b == 0).filter(|s| !s.is_empty());
+        let files = convert_filename(files)?;
+        let mut files = files.into_iter().collect::<Vec<PathBuf>>();
 
-        let mut files = files.into_iter().collect::<Vec<OsString>>();
-        
         files.sort();
-        fn try_from_with_error_context(f: OsString) -> Result<AbsPath> {
-            AbsPath::try_from(&f).with_context(|| format!("unable to get absolute path on {f:?}"))
+        fn try_from_with_error_context(f: PathBuf) -> Result<AbsPath> {
+            AbsPath::try_from(&f as &Path)
+                .with_context(|| format!("unable to get absolute path on {f:?}"))
         }
         files
             .into_iter()
             .map(try_from_with_error_context)
             .collect::<Result<_>>()
     }
+}
+
+// Binary filename handling on windows and unix are slightly different - so
+// we'll have a custom function to do the conversion.
+#[cfg(unix)]
+fn convert_filename<'s, I: Iterator<Item = &'s [u8]>>(files: I) -> Result<HashSet<PathBuf>> {
+    // Don't convert to str (which is utf8) - instead use OsString so we
+    // properly handle non-utf8 filenames.
+    let mut result = HashSet::new();
+    for name in files {
+        let name_str = OsStr::from_bytes(name).to_os_string();
+        let name_path = PathBuf::from(name_str);
+        result.insert(name_path);
+    }
+    Ok(result)
+}
+#[cfg(windows)]
+fn convert_filename<'s, I: Iterator<Item = &'s [u8]>>(files: I) -> Result<HashSet<PathBuf>> {
+    // Windows seems to use utf8 for raw command output.
+    let mut result = HashSet::new();
+    for name in files {
+        let name_str = std::str::from_utf8(name)?;
+        let name_path = PathBuf::from_str(name_str)?;
+        result.insert(name_path);
+    }
+    Ok(result)
 }
 
 pub fn get_paths_from_cmd(paths_cmd: &str) -> Result<Vec<AbsPath>> {
