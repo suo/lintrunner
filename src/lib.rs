@@ -1,7 +1,6 @@
 use anyhow::{bail, Context, Result};
 use clap::ArgEnum;
-use console::{style, Term};
-use indicatif::{MultiProgress, ProgressBar};
+use console::Term;
 use linter::Linter;
 use log::debug;
 use path::AbsPath;
@@ -13,6 +12,7 @@ use std::convert::TryFrom;
 use std::fs::OpenOptions;
 use std::sync::{Arc, Mutex};
 use std::thread;
+use terminal::TerminalManager;
 use version_control::VersionControl;
 
 pub mod git;
@@ -26,6 +26,7 @@ pub mod persistent_data;
 pub mod rage;
 pub mod render;
 pub mod sapling;
+pub mod terminal;
 pub mod version_control;
 
 #[cfg(test)]
@@ -216,25 +217,30 @@ pub fn do_lint(
     log_utils::log_files("Linting files: ", &files);
 
     let mut thread_handles = Vec::new();
-    let spinners = Arc::new(MultiProgress::new());
-
-    // Too lazy to learn rust's fancy concurrent programming stuff, just spawn a thread per linter and join them.
     let all_lints = Arc::new(Mutex::new(HashMap::new()));
+
+    // Create terminal manager for progress display
+    let terminal_manager = if enable_spinners {
+        let mut tm = TerminalManager::new();
+        tm.enter_progress_mode()?;
+
+        // Add all linters to progress display
+        for linter in &linters {
+            tm.add_linter(linter.code.clone(), "running...".to_string());
+        }
+
+        Some(Arc::new(Mutex::new(tm)))
+    } else {
+        None
+    };
 
     for linter in linters {
         let all_lints = Arc::clone(&all_lints);
         let files = Arc::clone(&files);
-        let spinners = Arc::clone(&spinners);
+        let linter_code = linter.code.clone();
+        let tm_clone = terminal_manager.clone();
 
         let handle = thread::spawn(move || -> Result<()> {
-            let mut spinner = None;
-            if enable_spinners {
-                let _spinner = spinners.add(ProgressBar::new_spinner());
-                _spinner.set_message(format!("{} running...", linter.code));
-                _spinner.enable_steady_tick(100);
-                spinner = Some(_spinner);
-            }
-
             let lints = linter.run(&files);
 
             // If we're applying patches later, don't consider lints that would
@@ -250,24 +256,63 @@ pub fn do_lint(
             let is_success = lints.is_empty();
 
             group_lints_by_file(&mut all_lints, lints);
+            drop(all_lints); // Release lock before updating progress
 
-            let spinner_message = if is_success {
-                format!("{} {}", linter.code, style("success!").green())
-            } else {
-                format!("{} {}", linter.code, style("failure").red())
-            };
+            // Update progress display (non-blocking)
+            if let Some(tm) = tm_clone {
+                let message = if is_success {
+                    "success!".to_string()
+                } else {
+                    "failure".to_string()
+                };
 
-            if enable_spinners {
-                spinner.unwrap().finish_with_message(spinner_message);
+                // Quick non-blocking update
+                if let Ok(tm_guard) = tm.try_lock() {
+                    tm_guard.update_linter(&linter_code, message, true, is_success);
+                }
             }
             Ok(())
         });
         thread_handles.push(handle);
     }
 
-    spinners.join()?;
+    // Wait for all linters to complete with periodic refresh
+    let tm_for_refresh = terminal_manager.clone();
+    let completed_handles = Arc::new(Mutex::new(0));
+    let total_handles = thread_handles.len();
+
+    // Spawn a monitoring thread to refresh display
+    let completed_ref = completed_handles.clone();
+    let monitor_handle = if let Some(tm) = tm_for_refresh {
+        Some(thread::spawn(move || {
+            while *completed_ref.lock().unwrap() < total_handles {
+                if let Ok(tm_guard) = tm.try_lock() {
+                    let _ = tm_guard.refresh_display();
+                }
+                thread::sleep(std::time::Duration::from_millis(100));
+            }
+        }))
+    } else {
+        None
+    };
+
+    // Wait for all linter threads
     for handle in thread_handles {
         handle.join().unwrap()?;
+        *completed_handles.lock().unwrap() += 1;
+    }
+
+    // Wait for monitor thread to finish
+    if let Some(handle) = monitor_handle {
+        handle.join().unwrap();
+    }
+
+    // Exit progress mode and return to normal terminal
+    if let Some(tm) = terminal_manager {
+        let mut tm_guard = tm.lock().unwrap();
+        // Brief pause to show final state
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        tm_guard.exit_progress_mode()?;
     }
 
     // Unwrap is fine because all other owners hsould have been joined.

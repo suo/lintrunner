@@ -16,6 +16,7 @@ serde_json = "1.0.113"
 textwrap = { version = "0.15.2", features = ["terminal_size"] }
 similar = { version = "2.4.0", features = ["inline"] }
 console = "0.15.8"
+crossterm = "0.27"
 toml = "0.5.11"
 log = "0.4.20"
 indicatif = "0.16.2"
