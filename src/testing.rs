@@ -1,9 +1,14 @@
-use std::{fs::OpenOptions, io::Write, process::Command};
+use std::{fs::OpenOptions, io::Write, process::Command, sync::Mutex};
 
 use crate::get_version_control;
 
 use anyhow::Result;
+use once_cell::sync::Lazy;
 use tempfile::TempDir;
+
+// Global mutex to prevent race conditions when changing current directory
+// This is the same pattern used in Sapling tests
+static GIT_GLOBAL_MUTEX: Lazy<Mutex<()>> = Lazy::new(Mutex::default);
 
 pub struct GitCheckout {
     root: TempDir,
@@ -81,6 +86,7 @@ impl GitCheckout {
     }
 
     pub fn changed_files(&self, relative_to: Option<&str>) -> Result<Vec<String>> {
+        let _shared = GIT_GLOBAL_MUTEX.lock().unwrap();
         std::env::set_current_dir(self.root())?;
         let repo = get_version_control()?;
         let files = repo.get_changed_files(relative_to)?;
@@ -92,6 +98,7 @@ impl GitCheckout {
     }
 
     pub fn merge_base_with(&self, merge_base_with: &str) -> Result<String> {
+        let _shared = GIT_GLOBAL_MUTEX.lock().unwrap();
         std::env::set_current_dir(self.root())?;
         let repo = get_version_control()?;
         repo.get_merge_base_with(merge_base_with)
