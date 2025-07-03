@@ -1,12 +1,9 @@
 ---
 source: tests/integration_test.rs
 expression: output_lines
-
 ---
 - "STDOUT:"
 - ""
 - ""
 - "STDERR:"
-- "error:        Could not read lintrunner config at: 'asdfasdfasdf'"
-- "caused_by:             No such file or directory (os error 2)"
-
+- "error:        Could not find 'asdfasdfasdf' in current directory or any parent directory (searched up to 10 levels or until git repository root)"
