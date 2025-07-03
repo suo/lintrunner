@@ -1,4 +1,9 @@
-use std::{collections::HashSet, convert::TryFrom, io::Write, path::{Path, PathBuf}};
+use std::{
+    collections::HashSet,
+    convert::TryFrom,
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{Context, Result};
 use chrono::SecondsFormat;
@@ -19,8 +24,6 @@ use lintrunner::{
 use log::debug;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
-
-
 
 #[derive(Debug, Parser)]
 #[clap(version, name = "lintrunner", infer_subcommands(true))]
@@ -214,7 +217,7 @@ fn do_main() -> Result<i32> {
                 } else {
                     primary_config_dir.join(&path)
                 };
-                
+
                 if full_path.exists() {
                     Some(full_path.to_string_lossy().to_string())
                 } else {

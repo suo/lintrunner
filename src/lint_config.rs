@@ -18,13 +18,12 @@ use serde::{Deserialize, Serialize};
 /// - Root directory
 pub fn find_config_file(config_filename: &str) -> Result<AbsPath> {
     use std::env;
-    
-    let mut current_dir = env::current_dir()
-        .context("Failed to get current working directory")?;
-    
+
+    let mut current_dir = env::current_dir().context("Failed to get current working directory")?;
+
     let max_depth = 10;
     let mut depth = 0;
-    
+
     loop {
         // Check if config file exists in current directory
         let config_path = current_dir.join(config_filename);
@@ -32,21 +31,21 @@ pub fn find_config_file(config_filename: &str) -> Result<AbsPath> {
             debug!("Found config file at: {}", config_path.display());
             return AbsPath::try_from(config_path);
         }
-        
+
         // Check if we've hit a git repository root
         let git_dir = current_dir.join(".git");
         if git_dir.exists() {
             debug!("Hit git repository root at: {}", current_dir.display());
             break;
         }
-        
+
         // Check if we've hit maximum depth
         depth += 1;
         if depth >= max_depth {
             debug!("Hit maximum search depth of {}", max_depth);
             break;
         }
-        
+
         // Move to parent directory
         match current_dir.parent() {
             Some(parent) => {
@@ -59,7 +58,7 @@ pub fn find_config_file(config_filename: &str) -> Result<AbsPath> {
             }
         }
     }
-    
+
     // If we get here, we didn't find the config file
     Err(anyhow::Error::msg(format!(
         "Could not find '{}' in current directory or any parent directory (searched up to {} levels or until git repository root)", 
@@ -311,7 +310,7 @@ fn patterns_from_strs(pattern_strs: &[String]) -> Result<Vec<Pattern>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs::{File, create_dir_all};
+    use std::fs::{create_dir_all, File};
     use std::io::Write;
     use std::path::Path;
     use tempfile::TempDir;
@@ -323,9 +322,9 @@ mod tests {
     {
         let original_dir = std::env::current_dir()?;
         std::env::set_current_dir(dir)?;
-        
+
         let result = test_fn();
-        
+
         std::env::set_current_dir(original_dir)?;
         result
     }
@@ -334,20 +333,20 @@ mod tests {
     fn create_temp_dir_with_config() -> Result<TempDir> {
         let temp_dir = TempDir::new()?;
         let config_path = temp_dir.path().join(".lintrunner.toml");
-        
+
         let mut file = File::create(&config_path)?;
         writeln!(file, "[[linter]]")?;
         writeln!(file, "code = 'TEST'")?;
         writeln!(file, "include_patterns = ['**']")?;
         writeln!(file, "command = ['echo', 'test']")?;
-        
+
         Ok(temp_dir)
     }
 
     #[test]
     fn test_find_config_file_in_current_directory() -> Result<()> {
         let temp_dir = create_temp_dir_with_config()?;
-        
+
         // Test that we find the config file
         with_current_dir(temp_dir.path(), || {
             let result = find_config_file(".lintrunner.toml")?;
@@ -360,10 +359,10 @@ mod tests {
     fn test_find_config_file_in_parent_directory() -> Result<()> {
         let temp_dir = create_temp_dir_with_config()?;
         let subdir = temp_dir.path().join("subdir");
-        
+
         // Create subdirectory
         create_dir_all(&subdir)?;
-        
+
         // Test that we find the config file in the parent directory
         with_current_dir(&subdir, || {
             let result = find_config_file(".lintrunner.toml")?;
@@ -378,11 +377,11 @@ mod tests {
         let git_dir = temp_dir.path().join(".git");
         let subdir = temp_dir.path().join("subdir");
         let nested_subdir = subdir.join("nested");
-        
+
         // Create directory structure
         create_dir_all(&git_dir)?;
         create_dir_all(&nested_subdir)?;
-        
+
         // Test that we find the config file (should stop at git root and find it)
         with_current_dir(&nested_subdir, || {
             let result = find_config_file(".lintrunner.toml")?;
@@ -395,34 +394,40 @@ mod tests {
     fn test_find_config_file_not_found() -> Result<()> {
         let temp_dir = TempDir::new()?;
         let subdir = temp_dir.path().join("subdir");
-        
+
         // Create subdirectory but no config file
         create_dir_all(&subdir)?;
-        
+
         // Test that we don't find the config file
         with_current_dir(&subdir, || {
             let result = find_config_file(".lintrunner.toml");
             assert!(result.is_err());
-            assert!(result.unwrap_err().to_string().contains("Could not find '.lintrunner.toml'"));
+            assert!(result
+                .unwrap_err()
+                .to_string()
+                .contains("Could not find '.lintrunner.toml'"));
             Ok(())
         })
     }
 
-    #[test] 
+    #[test]
     fn test_find_config_file_stops_at_git_root_without_config() -> Result<()> {
         let temp_dir = TempDir::new()?;
         let git_dir = temp_dir.path().join(".git");
         let subdir = temp_dir.path().join("subdir");
-        
+
         // Create git directory and subdirectory, but no config file
         create_dir_all(&git_dir)?;
         create_dir_all(&subdir)?;
-        
+
         // Test that we don't find the config file and stop at git root
         with_current_dir(&subdir, || {
             let result = find_config_file(".lintrunner.toml");
             assert!(result.is_err());
-            assert!(result.unwrap_err().to_string().contains("Could not find '.lintrunner.toml'"));
+            assert!(result
+                .unwrap_err()
+                .to_string()
+                .contains("Could not find '.lintrunner.toml'"));
             Ok(())
         })
     }
