@@ -7,10 +7,10 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
-    tags:
-      - 'v*'
+    # branches:
+    #   - main
+    # tags:
+    #   - 'v*'
   pull_request:
   workflow_dispatch:
 
@@ -62,7 +62,7 @@ jobs:
     needs: test
     strategy:
       matrix:
-        target: [x86_64, aarch64]
+        target: [x86_64, aarch64, riscv64gc-unknown-linux-gnu]
     steps:
       - uses: actions/checkout@v4
       - name: Build wheels
