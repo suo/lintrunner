@@ -109,7 +109,6 @@ pub fn render_lint_messages(
     let current_dir = std::env::current_dir()?;
     for path in paths {
         let lint_messages = lint_messages.get(path).unwrap();
-
         stdout.write_all(b"\n\n")?;
 
         match path {
