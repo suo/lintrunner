@@ -348,9 +348,12 @@ pub fn print_error(err: &anyhow::Error) -> std::io::Result<()> {
     let mut stderr = Term::stderr();
     let mut chain = err.chain();
 
-    if let Some(error) = chain.next() {
+    if let Some(_error) = chain.next() {
         write!(stderr, "{} ", style("error:").red().bold())?;
-        let indented = indent(&format!("{}", error), spaces(7));
+
+        // print full error message since it may include backtrace if
+        // `RUST_BACKTRACE=1`
+        let indented = indent(&format!("{:?}", err), spaces(7));
         writeln!(stderr, "{}", indented)?;
 
         for cause in chain {
