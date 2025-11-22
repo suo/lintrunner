@@ -1,4 +1,9 @@
-use std::{collections::HashSet, convert::TryFrom, io::Write, path::Path};
+use std::{
+    collections::HashSet,
+    convert::TryFrom,
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{Context, Result};
 use chrono::SecondsFormat;
@@ -8,7 +13,7 @@ use itertools::Itertools;
 use lintrunner::{
     do_init, do_lint,
     init::check_init_changed,
-    lint_config::{get_linters_from_configs, LintRunnerConfig},
+    lint_config::{find_config_file, get_linters_from_configs, LintRunnerConfig},
     log_utils::setup_logger,
     path::AbsPath,
     persistent_data::{ExitInfo, PersistentDataStore, RunInfo},
@@ -182,8 +187,7 @@ fn do_main() -> Result<i32> {
         .map(|path| path.trim().to_string())
         .collect_vec();
     // check if first config path exists
-    let primary_config_path = AbsPath::try_from(config_paths[0].clone())
-        .with_context(|| format!("Could not read lintrunner config at: '{}'", config_paths[0]))?;
+    let primary_config_path = find_config_file(&config_paths[0])?;
 
     let persistent_data_store = PersistentDataStore::new(&primary_config_path, run_info)?;
 
@@ -197,18 +201,33 @@ fn do_main() -> Result<i32> {
     debug!("Passed args: {:?}", std::env::args());
     debug!("Computed args: {:?}", args);
 
-    // report config paths which do not exist
-    for path in &config_paths {
-        match AbsPath::try_from(path) {
-            Ok(_) => {},  // do nothing on success
-            Err(_) => eprintln!("Warning: Could not find a lintrunner config at: '{}'. Continuing without using configuration file.", path),
-        }
-    }
-
+    // For additional config files, resolve them relative to the primary config directory
+    let primary_config_dir = primary_config_path.parent().unwrap();
     let config_paths: Vec<String> = config_paths
         .into_iter()
-        .filter(|path| Path::new(&path).exists())
+        .enumerate()
+        .filter_map(|(i, path)| {
+            if i == 0 {
+                // First config is the primary one we already found
+                Some(primary_config_path.to_string_lossy().to_string())
+            } else {
+                // Additional configs are relative to the primary config directory
+                let full_path = if Path::new(&path).is_absolute() {
+                    PathBuf::from(&path)
+                } else {
+                    primary_config_dir.join(&path)
+                };
+
+                if full_path.exists() {
+                    Some(full_path.to_string_lossy().to_string())
+                } else {
+                    eprintln!("Warning: Could not find a lintrunner config at: '{}'. Continuing without using configuration file.", path);
+                    None
+                }
+            }
+        })
         .collect();
+
     let cmd = args.cmd.unwrap_or(SubCommand::Lint);
     let lint_runner_config = LintRunnerConfig::new(&config_paths)?;
     let skipped_linters = args.skip.map(|linters| {
