@@ -11,8 +11,10 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::convert::TryFrom;
 use std::fs::OpenOptions;
+use std::io::Write;
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::time::{Duration, Instant};
 use version_control::VersionControl;
 
 pub mod git;
@@ -168,6 +170,7 @@ pub fn do_lint(
     revision_opt: RevisionOpt,
     tee_json: Option<String>,
     only_lint_under_config_dir: bool,
+    show_timings: bool,
 ) -> Result<i32> {
     debug!(
         "Running linters: {:?}",
@@ -215,16 +218,19 @@ pub fn do_lint(
 
     log_utils::log_files("Linting files: ", &files);
 
+    let wall_start = Instant::now();
     let mut thread_handles = Vec::new();
     let spinners = Arc::new(MultiProgress::new());
 
     // Too lazy to learn rust's fancy concurrent programming stuff, just spawn a thread per linter and join them.
     let all_lints = Arc::new(Mutex::new(HashMap::new()));
+    let timings: Arc<Mutex<Vec<(String, Duration)>>> = Arc::new(Mutex::new(Vec::new()));
 
     for linter in linters {
         let all_lints = Arc::clone(&all_lints);
         let files = Arc::clone(&files);
         let spinners = Arc::clone(&spinners);
+        let timings = Arc::clone(&timings);
 
         let handle = thread::spawn(move || -> Result<()> {
             let mut spinner = None;
@@ -235,7 +241,16 @@ pub fn do_lint(
                 spinner = Some(_spinner);
             }
 
+            let linter_code = linter.code.clone();
+            let start = Instant::now();
             let lints = linter.run(&files);
+            let elapsed = start.elapsed();
+
+            // Record timing
+            {
+                let mut timings = timings.lock().expect("timings mutex poisoned");
+                timings.push((linter_code.clone(), elapsed));
+            }
 
             // If we're applying patches later, don't consider lints that would
             // be fixed by that.
@@ -252,9 +267,9 @@ pub fn do_lint(
             group_lints_by_file(&mut all_lints, lints);
 
             let spinner_message = if is_success {
-                format!("{} {}", linter.code, style("success!").green())
+                format!("{} {}", linter_code, style("success!").green())
             } else {
-                format!("{} {}", linter.code, style("failure").red())
+                format!("{} {}", linter_code, style("failure").red())
             };
 
             if enable_spinners {
@@ -268,6 +283,54 @@ pub fn do_lint(
     spinners.join()?;
     for handle in thread_handles {
         handle.join().unwrap()?;
+    }
+
+    // Print timing summary if requested
+    if show_timings {
+        let mut timings = timings.lock().expect("timings mutex poisoned");
+        timings.sort_by(|a, b| b.1.cmp(&a.1)); // Sort by duration, descending
+
+        let mut stderr = Term::stderr();
+        writeln!(stderr)?;
+
+        // Calculate column width based on longest linter name
+        let max_name_len = timings
+            .iter()
+            .map(|(code, _)| code.len())
+            .max()
+            .unwrap_or(10)
+            .max(10); // minimum 10 chars
+        let line_width = max_name_len + 22; // name + spacing + time + pct
+
+        writeln!(stderr, "{}", style("Linter Timings:").bold())?;
+        writeln!(stderr, "{}", style("─".repeat(line_width)).dim())?;
+
+        let wall_time = wall_start.elapsed();
+        for (code, duration) in timings.iter() {
+            let secs = duration.as_secs_f64();
+            let pct = if wall_time.as_secs_f64() > 0.0 {
+                (secs / wall_time.as_secs_f64()) * 100.0
+            } else {
+                0.0
+            };
+            writeln!(
+                stderr,
+                "  {:<width$} {:>8.2}s  {:>5.1}%",
+                code,
+                secs,
+                pct,
+                width = max_name_len
+            )?;
+        }
+        writeln!(stderr, "{}", style("─".repeat(line_width)).dim())?;
+        writeln!(
+            stderr,
+            "  {:<width$} {:>8.2}s",
+            style("Total (wall clock)").bold(),
+            wall_time.as_secs_f64(),
+            width = max_name_len
+        )?;
+        writeln!(stderr)?;
     }
 
     // Unwrap is fine because all other owners hsould have been joined.

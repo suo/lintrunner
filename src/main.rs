@@ -116,6 +116,10 @@ struct Args {
     /// If set, will only lint files under the directory where the configuration file is located and its subdirectories.
     #[clap(long, global = true)]
     only_lint_under_config_dir: bool,
+
+    /// If set, print a summary of how long each linter took to run.
+    #[clap(long, global = true)]
+    timings: bool,
 }
 
 #[derive(Debug, Parser)]
@@ -305,6 +309,7 @@ fn do_main() -> Result<i32> {
                 revision_opt,
                 args.tee_json,
                 only_lint_under_config_dir,
+                args.timings,
             )
         }
         SubCommand::Lint => {
@@ -319,6 +324,7 @@ fn do_main() -> Result<i32> {
                 revision_opt,
                 args.tee_json,
                 only_lint_under_config_dir,
+                args.timings,
             )
         }
         SubCommand::Rage {
