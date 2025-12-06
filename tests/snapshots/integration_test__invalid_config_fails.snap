@@ -7,5 +7,7 @@ expression: output_lines
 - ""
 - "STDERR:"
 - "error:        Config file had invalid schema"
+- ""
+- "       Caused by:"
+- "           missing field `linter`"
 - "caused_by:             missing field `linter`"
-
