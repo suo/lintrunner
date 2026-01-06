@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.12.10] - 2026-01-06
+
+### Bug Fixes
+
+- Demote missing config file warning to debug level ([376954e](https://github.com/suo/lintrunner/commit/376954e4cf338e606785d557e452beb092cd6b4e))
+- Use unique artifact names for upload-artifact v4 ([cb8a312](https://github.com/suo/lintrunner/commit/cb8a312620caf6dbfe21be51c677ca65e33d4b9c))
+
 ## [0.12.9] - 2026-01-06
 
 ### Testing
