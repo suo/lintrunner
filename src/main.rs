@@ -201,7 +201,7 @@ fn do_main() -> Result<i32> {
     for path in &config_paths {
         match AbsPath::try_from(path) {
             Ok(_) => {},  // do nothing on success
-            Err(_) => eprintln!("Warning: Could not find a lintrunner config at: '{}'. Continuing without using configuration file.", path),
+            Err(_) => debug!("Could not find a lintrunner config at: '{}'. Continuing without using configuration file.", path),
         }
     }
 
