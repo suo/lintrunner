@@ -7,10 +7,10 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
-    tags:
-      - 'v*'
+    # branches:
+    #   - main
+    # tags:
+    #   - 'v*'
   pull_request:
   workflow_dispatch:
 
@@ -62,7 +62,7 @@ jobs:
     needs: test
     strategy:
       matrix:
-        target: [x86_64, aarch64]
+        target: [x86_64, aarch64, riscv64gc-unknown-linux-gnu]
     steps:
       - uses: actions/checkout@v4
       - name: Build wheels
@@ -75,7 +75,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: linux-wheels-${{ matrix.target }}
           path: dist
 
   windows:
@@ -95,7 +95,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: windows-wheels-${{ matrix.target }}
           path: dist
 
   macos:
@@ -115,7 +115,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: macos-wheels-${{ matrix.target }}
           path: dist
 
   sdist:
@@ -131,7 +131,7 @@ jobs:
       - name: Upload sdist
         uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: sdist
           path: dist
 
   release:

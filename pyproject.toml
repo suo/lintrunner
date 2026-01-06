@@ -1,9 +1,10 @@
 [build-system]
-requires = ["maturin>=0.12,<0.13"]
+requires = ["maturin==1.9.3"]
 build-backend = "maturin"
 
 [project]
 name = "lintrunner"
+version = "0.12.7"
 requires-python = ">=3.6"
 classifiers = [
     "Programming Language :: Rust",
