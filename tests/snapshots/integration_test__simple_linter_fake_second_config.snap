@@ -21,6 +21,4 @@ expression: output_lines
 - ""
 - ""
 - "STDERR:"
-- "Warning: Could not find a lintrunner config at: 'NONEXISTENT_CONFIG'. Continuing without using configuration file."
 - "WARNING: No previous init data found. If this is the first time you're running lintrunner, you should run `lintrunner init`."
-
