@@ -1,20 +1,32 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+
+## [0.12.8] - 2026-01-06
+
+### Testing
+
+- Fix flaky git tests ([eb9b77f](https://github.com/suo/lintrunner/commit/eb9b77ff6dc6a1aeb3e1a2b49ba38289fbae5299))
+
+### Ci
+
+- Update upload-artifact to v4 ([#90](https://github.com/suo/lintrunner/issues/90)) ([f05b0a3](https://github.com/suo/lintrunner/commit/f05b0a3f56fbc183b11347a2a879e2009fc982b7))
+
+### Render
+
+- Show backtraces ([#94](https://github.com/suo/lintrunner/issues/94)) ([67cfd36](https://github.com/suo/lintrunner/commit/67cfd3630f292f0288e2b7624c83122a4a8263b8))
+
 ## [0.12.7] - 2024-12-05
 
 ### Bug Fixes
 
-- Build x86\_64 wheels for Windows ([a4d6b74](https://github.com/suo/lintrunner/commit/a4d6b7469307acae7228d95ee08a4764b1e655f2))
-- Fix [Clippy](https://doc.rust-lang.org/clippy/) violatoins ([05ff643](https://github.com/suo/lintrunner/commit/05ff6431bbeab7359e7b4e13e22cbb9e85c5c433))
-- Fetch all commit history to fix MacOS builds ([3770be6](https://github.com/suo/lintrunner/commit/3770be65ee7b1186b83cf3873d47a439b275369d))
-
+- Build x86_64 wheels for Windows ([#73](https://github.com/suo/lintrunner/issues/73)) ([a4d6b74](https://github.com/suo/lintrunner/commit/a4d6b7469307acae7228d95ee08a4764b1e655f2))
 
 ## [0.12.5] - 2024-04-09
 
 ### Features
 
-- Add gist/pastry upload to lintrunner rage ([bd224ae](https://github.com/suo/lintrunner/commit/bd224aefdc5144cc85276695cd4fabf170f183a0))
+- Add gist/pastry upload to lintrunner rage ([#70](https://github.com/suo/lintrunner/issues/70)) ([bd224ae](https://github.com/suo/lintrunner/commit/bd224aefdc5144cc85276695cd4fabf170f183a0))
 
 ## [0.12.1] - 2024-02-10
 
@@ -27,7 +39,7 @@ All notable changes to this project will be documented in this file.
 
 ### Bug Fixes
 
-- Properly fail if --get\_paths cmd fails ([53c4961](https://github.com/suo/lintrunner/commit/53c496184eac9545e83d6a2714adf0bc1457316c))
+- Properly fail if --get_paths cmd fails ([53c4961](https://github.com/suo/lintrunner/commit/53c496184eac9545e83d6a2714adf0bc1457316c))
 - Dont panic when no linters are specified ([0527cf0](https://github.com/suo/lintrunner/commit/0527cf0792956a88a5fb2454688c975d0a8c8baf))
 - Make --all-files work with sl ([2df4572](https://github.com/suo/lintrunner/commit/2df4572ddf1a630889a0150ac8e6bf9d63340839))
 
