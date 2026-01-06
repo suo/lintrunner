@@ -1,12 +1,13 @@
 ---
 source: tests/integration_test.rs
 expression: output_lines
-
 ---
 - "STDOUT:"
 - ""
 - ""
 - "STDERR:"
 - "error:        Could not read lintrunner config at: 'asdfasdfasdf'"
+- ""
+- "       Caused by:"
+- "           No such file or directory (os error 2)"
 - "caused_by:             No such file or directory (os error 2)"
-
