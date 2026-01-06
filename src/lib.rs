@@ -13,6 +13,7 @@ use std::convert::TryFrom;
 use std::fs::OpenOptions;
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::time::Duration;
 use version_control::VersionControl;
 
 pub mod git;
@@ -231,7 +232,7 @@ pub fn do_lint(
             if enable_spinners {
                 let _spinner = spinners.add(ProgressBar::new_spinner());
                 _spinner.set_message(format!("{} running...", linter.code));
-                _spinner.enable_steady_tick(100);
+                _spinner.enable_steady_tick(Duration::from_millis(100));
                 spinner = Some(_spinner);
             }
 
@@ -265,7 +266,6 @@ pub fn do_lint(
         thread_handles.push(handle);
     }
 
-    spinners.join()?;
     for handle in thread_handles {
         handle.join().unwrap()?;
     }

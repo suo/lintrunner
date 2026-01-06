@@ -18,7 +18,7 @@ similar = { version = "2.4.0", features = ["inline"] }
 console = "0.15.8"
 toml = "0.5.11"
 log = "0.4.20"
-indicatif = "0.16.2"
+indicatif = "0.17"
 regex = "1.10.3"
 itertools = "0.10.5"
 directories = "4.0.1"
