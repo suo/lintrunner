@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.12.11] - 2026-01-07
+
+### Testing
+
+- Fix snapshot test ([b7cd9f5](https://github.com/suo/lintrunner/commit/b7cd9f52117efaa0f714d27cd886626ecba906e9))
+
 ## [0.12.10] - 2026-01-06
 
 ### Bug Fixes
