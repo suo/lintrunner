@@ -62,7 +62,7 @@ jobs:
     needs: test
     strategy:
       matrix:
-        target: [x86_64, aarch64]
+        target: [x86_64, aarch64, riscv64]
     steps:
       - uses: actions/checkout@v4
       - name: Build wheels
