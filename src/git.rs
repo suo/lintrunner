@@ -164,10 +164,15 @@ impl VersionControl for Repo {
             .collect::<HashSet<String>>();
         let mut files = files.into_iter().collect::<Vec<String>>();
         files.sort();
-        files
+        Ok(files
             .into_iter()
-            .map(AbsPath::try_from)
-            .collect::<Result<_>>()
+            .filter_map(|p| if let Ok(abs_path) = AbsPath::try_from(&p) {
+                Some(abs_path)
+            } else {
+                debug!("Failed to convert path to AbsPath: {}", p);
+                None
+            })
+            .collect::<Vec<AbsPath>>())
     }
 }
 
