@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.13.0] - 2026-01-24
+
+### Workflows/CI
+
+- Add riscv64 ([#98](https://github.com/suo/lintrunner/issues/98)) ([6401d0a](https://github.com/suo/lintrunner/commit/6401d0a0ed5434f67d125bb19f4113093c056f69))
+
 ## [0.12.11] - 2026-01-07
 
 ### Testing
