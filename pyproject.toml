@@ -5,6 +5,7 @@ build-backend = "maturin"
 [project]
 name = "lintrunner"
 requires-python = ">=3.6"
+dynamic = ["version"]
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
