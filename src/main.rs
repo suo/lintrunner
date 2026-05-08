@@ -269,11 +269,12 @@ fn do_main() -> Result<i32> {
         RevisionOpt::Head
     };
 
-    let only_lint_under_config_dir = if lint_runner_config.only_lint_under_config_dir.is_some() {
-        lint_runner_config.only_lint_under_config_dir.unwrap()
-    } else {
-        args.only_lint_under_config_dir
-    };
+    let only_lint_under_config_dir =
+        if let Some(val) = lint_runner_config.only_lint_under_config_dir {
+            val
+        } else {
+            args.only_lint_under_config_dir
+        };
 
     let paths_opt = if let Some(paths_file) = args.paths_from {
         let path_file = AbsPath::try_from(&paths_file)
