@@ -1,7 +1,7 @@
 use anyhow::{bail, Context, Result};
 use clap::ArgEnum;
 use console::{style, Term};
-use indicatif::{MultiProgress, ProgressBar};
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use linter::Linter;
 use log::debug;
 use path::AbsPath;
@@ -11,10 +11,13 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::convert::TryFrom;
 use std::fs::OpenOptions;
+use std::io::Write;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 use version_control::VersionControl;
+
+const MAX_VISIBLE_LINTERS: usize = 8;
 
 pub mod git;
 pub mod init;
@@ -46,6 +49,15 @@ fn group_lints_by_file(
         acc.entry(lint.path.clone()).or_default().push(lint);
         acc
     });
+}
+
+fn merge_lints_by_file(
+    all_lints: &mut HashMap<Option<String>, Vec<LintMessage>>,
+    lints_by_file: HashMap<Option<String>, Vec<LintMessage>>,
+) {
+    for (path, mut lints) in lints_by_file {
+        all_lints.entry(path).or_default().append(&mut lints);
+    }
 }
 
 fn apply_patches(lint_messages: &[LintMessage]) -> Result<()> {
@@ -159,6 +171,162 @@ pub fn get_version_control() -> Result<Box<dyn VersionControl>> {
     Ok(Box::new(sapling::Repo::new()?))
 }
 
+struct LintProgress {
+    progress: MultiProgress,
+    summary: ProgressBar,
+    rows: Vec<ProgressBar>,
+    state: Mutex<LintProgressState>,
+    total: usize,
+}
+
+#[derive(Default)]
+struct LintProgressState {
+    active: Vec<String>,
+    completed: usize,
+    failed: usize,
+    streamed_lints: bool,
+}
+
+impl LintProgress {
+    fn new(total: usize) -> Arc<Self> {
+        let progress = MultiProgress::new();
+        let summary = progress.add(ProgressBar::new(total as u64));
+        summary.set_style(
+            ProgressStyle::with_template("{wide_msg}")
+                .expect("static progress style template should be valid"),
+        );
+
+        let mut rows = Vec::new();
+        for _ in 0..MAX_VISIBLE_LINTERS.min(total) {
+            let row = progress.add(ProgressBar::new_spinner());
+            row.set_style(Self::blank_row_style());
+            rows.push(row);
+        }
+
+        let lint_progress = Arc::new(Self {
+            progress,
+            summary,
+            rows,
+            state: Mutex::new(LintProgressState::default()),
+            total,
+        });
+        lint_progress.render();
+        lint_progress
+    }
+
+    fn active_row_style() -> ProgressStyle {
+        ProgressStyle::with_template("{spinner} {wide_msg}")
+            .expect("static progress style template should be valid")
+    }
+
+    fn blank_row_style() -> ProgressStyle {
+        ProgressStyle::with_template("{wide_msg}")
+            .expect("static progress style template should be valid")
+    }
+
+    fn start_linter(&self, code: &str) {
+        {
+            let mut state = self.state.lock().unwrap();
+            state.active.push(code.to_string());
+        }
+        self.render();
+    }
+
+    fn finish_linter(&self, code: &str, is_success: bool) {
+        let completed = {
+            let mut state = self.state.lock().unwrap();
+            state.active.retain(|active_code| active_code != code);
+            state.completed += 1;
+            if !is_success {
+                state.failed += 1;
+            }
+            state.completed
+        };
+        self.summary.set_position(completed as u64);
+        self.render();
+    }
+
+    fn stream_lints(
+        &self,
+        lints_by_file: &HashMap<Option<String>, Vec<LintMessage>>,
+    ) -> Result<()> {
+        if lints_by_file.is_empty() || self.progress.is_hidden() {
+            return Ok(());
+        }
+
+        let mut output = Vec::new();
+        render_lint_messages(&mut output, lints_by_file)?;
+
+        self.progress.suspend(|| {
+            let stdout = std::io::stdout();
+            let mut stdout = stdout.lock();
+            stdout.write_all(&output)
+        })?;
+
+        self.state.lock().unwrap().streamed_lints = true;
+        Ok(())
+    }
+
+    fn streamed_lints(&self) -> bool {
+        self.state.lock().unwrap().streamed_lints
+    }
+
+    fn finish(&self) {
+        for row in &self.rows {
+            row.finish_and_clear();
+        }
+        let state = self.state.lock().unwrap();
+        self.summary
+            .finish_with_message(self.summary_message(&state));
+    }
+
+    fn summary_message(&self, state: &LintProgressState) -> String {
+        let running = state.active.len();
+        let hidden = running.saturating_sub(MAX_VISIBLE_LINTERS);
+        let completed = format!("{}/{} completed", state.completed, self.total);
+        let completed = if state.completed == self.total && state.failed == 0 {
+            format!("{}", style(completed).green())
+        } else {
+            completed
+        };
+        let failure_msg = if state.failed == 0 {
+            String::new()
+        } else {
+            format!(
+                ", {}",
+                style(format!("{} failed", state.failed)).red().bold()
+            )
+        };
+
+        format!(
+            "Linters: {completed}, {running} running{failure_msg}{}",
+            if hidden == 0 {
+                String::new()
+            } else {
+                format!(", {} hidden", hidden)
+            }
+        )
+    }
+
+    fn render(&self) {
+        let state = self.state.lock().unwrap();
+        self.summary.set_message(self.summary_message(&state));
+
+        for (index, row) in self.rows.iter().enumerate() {
+            if let Some(code) = state.active.get(index) {
+                row.set_style(Self::active_row_style());
+                row.set_message(format!("{} running...", code));
+                row.enable_steady_tick(Duration::from_millis(100));
+                row.tick();
+            } else {
+                row.disable_steady_tick();
+                row.set_style(Self::blank_row_style());
+                row.set_message("");
+            }
+        }
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn do_lint(
     linters: Vec<Linter>,
@@ -216,8 +384,13 @@ pub fn do_lint(
 
     log_utils::log_files("Linting files: ", &files);
 
+    let total_linters = linters.len();
     let mut thread_handles = Vec::new();
-    let spinners = Arc::new(MultiProgress::new());
+    let progress = if enable_spinners {
+        Some(LintProgress::new(total_linters))
+    } else {
+        None
+    };
 
     // Too lazy to learn rust's fancy concurrent programming stuff, just spawn a thread per linter and join them.
     let all_lints = Arc::new(Mutex::new(HashMap::new()));
@@ -225,15 +398,11 @@ pub fn do_lint(
     for linter in linters {
         let all_lints = Arc::clone(&all_lints);
         let files = Arc::clone(&files);
-        let spinners = Arc::clone(&spinners);
+        let progress = progress.as_ref().map(Arc::clone);
 
         let handle = thread::spawn(move || -> Result<()> {
-            let mut spinner = None;
-            if enable_spinners {
-                let _spinner = spinners.add(ProgressBar::new_spinner());
-                _spinner.set_message(format!("{} running...", linter.code));
-                _spinner.enable_steady_tick(Duration::from_millis(100));
-                spinner = Some(_spinner);
+            if let Some(progress) = &progress {
+                progress.start_linter(&linter.code);
             }
 
             let lints = linter.run(&files);
@@ -241,33 +410,44 @@ pub fn do_lint(
             // If we're applying patches later, don't consider lints that would
             // be fixed by that.
             let lints = if should_apply_patches {
-                apply_patches(&lints)?;
+                if let Err(err) = apply_patches(&lints) {
+                    if let Some(progress) = &progress {
+                        progress.finish_linter(&linter.code, false);
+                    }
+                    return Err(err);
+                }
                 remove_patchable_lints(lints)
             } else {
                 lints
             };
 
-            let mut all_lints = all_lints.lock().unwrap();
             let is_success = lints.is_empty();
+            let mut lints_by_file = HashMap::new();
+            group_lints_by_file(&mut lints_by_file, lints);
 
-            group_lints_by_file(&mut all_lints, lints);
-
-            let spinner_message = if is_success {
-                format!("{} {}", linter.code, style("success!").green())
-            } else {
-                format!("{} {}", linter.code, style("failure").red())
-            };
-
-            if enable_spinners {
-                spinner.unwrap().finish_with_message(spinner_message);
+            if let Some(progress) = &progress {
+                progress.finish_linter(&linter.code, is_success);
+                progress.stream_lints(&lints_by_file)?;
             }
+
+            let mut all_lints = all_lints.lock().unwrap();
+            merge_lints_by_file(&mut all_lints, lints_by_file);
             Ok(())
         });
         thread_handles.push(handle);
     }
 
     for handle in thread_handles {
-        handle.join().unwrap()?;
+        if let Err(err) = handle.join().unwrap() {
+            if let Some(progress) = &progress {
+                progress.finish();
+            }
+            return Err(err);
+        }
+    }
+
+    if let Some(progress) = &progress {
+        progress.finish();
     }
 
     // Unwrap is fine because all other owners hsould have been joined.
@@ -277,6 +457,13 @@ pub fn do_lint(
     log::logger().flush();
 
     let did_print = match render_opt {
+        RenderOpt::Default
+            if progress
+                .as_ref()
+                .is_some_and(|progress| progress.streamed_lints()) =>
+        {
+            PrintedLintErrors::Yes
+        }
         RenderOpt::Default => render_lint_messages(&mut stdout, &all_lints)?,
         RenderOpt::Json => render_lint_messages_json(&mut stdout, &all_lints)?,
         RenderOpt::Oneline => render_lint_messages_oneline(&mut stdout, &all_lints)?,
