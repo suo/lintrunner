@@ -27,15 +27,16 @@ struct Args {
     #[clap(short, long, parse(from_occurrences), global = true)]
     verbose: u8,
 
-    /// Paths to TOML files specifying linters. Configs are merged, with later files overriding earlier ones.
-    /// Except for the first, all files are optional, with missing ones triggering a warning.
+    /// Paths to TOML files specifying linters, separated by commas.
+    /// Configs are merged, with later files overriding earlier ones.
+    /// Except for the first path, files don't have to exist, but missing ones will trigger a warning.
     /// Relative paths are interpreted with respect to the first config file.
     #[clap(
         long,
         global = true,
         alias = "config",
         multiple = true,
-        default_value = ".lintrunner.toml, .lintrunner.private.toml"
+        default_value = ".lintrunner.toml, .lintrunner.private.toml, .config/lintrunner.toml, .config/lintrunner.private.toml"
     )]
     configs: String,
 
